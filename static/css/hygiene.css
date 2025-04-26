@@ -1,0 +1,70 @@
+/* Stiluri pentru chestionarul de igienă digitală */
+
+.category-section {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.category-section h3 {
+    color: #333;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #007bff;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.card {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-title {
+    font-weight: 500;
+}
+
+.form-check-input:checked + .form-check-label {
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* Stiluri pentru raportul de igienă digitală */
+
+.report-container .card-header {
+    font-weight: bold;
+}
+
+.recommendations .card {
+    border-left-width: 4px;
+}
+
+.recommendations .card.border-danger {
+    border-left-color: #dc3545;
+}
+
+.recommendations .card.border-warning {
+    border-left-color: #ffc107;
+}
+
+.recommendations .card.border-info {
+    border-left-color: #17a2b8;
+}
+
+.markdown-content {
+    line-height: 1.6;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+/* Stiluri pentru butoane */
+.btn-lg {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+}

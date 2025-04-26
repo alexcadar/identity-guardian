@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h1 class="text-center mb-4">Evaluare de Igienă Digitală</h1>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Despre Evaluarea de Igienă Digitală</h5>
+            <p class="card-text">
+                Completând acest chestionar, veți primi o evaluare personalizată a practicilor dvs. de igienă digitală,
+                împreună cu recomandări specifice pentru îmbunătățirea securității online și a confidențialității.
+            </p>
+            <p class="card-text">
+                Chestionarul este împărțit în 5 categorii principale. Vă rugăm să răspundeți la toate întrebările pentru a primi raportul complet.
+            </p>
+        </div>
+    </div>
+
+    {% if hygiene_report %}
+    <!-- Afișează raportul dacă există -->
+    <div class="report-container mb-5">
+        <h2 class="text-center mb-4">Raportul Dvs. de Igienă Digitală</h2>
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Scor: {{ hygiene_report.overall_score }}/100 - Nivel de risc: {{ hygiene_report.risk_level|upper }}</h3>
+            </div>
+            <div class="card-body">
+                <!-- Rezumat -->
+                <div class="mb-4">
+                    <h4>Rezumat</h4>
+                    <div class="markdown-content">
+                        {{ hygiene_report.summary|safe }}
+                    </div>
+                </div>
+                
+                <!-- Puncte forte și slabe -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">Puncte Forte</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group">
+                                    {% for strength in hygiene_report.strengths %}
+                                    <li class="list-group-item">{{ strength }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="mb-0">Puncte Slabe</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group">
+                                    {% for weakness in hygiene_report.weaknesses %}
+                                    <li class="list-group-item">{{ weakness }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recomandări -->
+                <div class="mb-4">
+                    <h4>Recomandări Personalizate</h4>
+                    <div class="recommendations">
+                        {% for recommendation in hygiene_report.recommendations %}
+                        <div class="card mb-3 
+                            {% if recommendation.priority == 'high' %}border-danger{% endif %}
+                            {% if recommendation.priority == 'medium' %}border-warning{% endif %}
+                            {% if recommendation.priority == 'low' %}border-info{% endif %}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ recommendation.category|replace('_', ' ')|title }}</h5>
+                                <p class="card-text">{{ recommendation.recommendation }}</p>
+                                <span class="badge 
+                                    {% if recommendation.priority == 'high' %}bg-danger{% endif %}
+                                    {% if recommendation.priority == 'medium' %}bg-warning{% endif %}
+                                    {% if recommendation.priority == 'low' %}bg-info{% endif %}">
+                                    {{ recommendation.priority|title }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Plan de acțiune -->
+                <div class="mb-4">
+                    <h4>Planul Dvs. de Acțiune</h4>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">Acțiuni Imediate</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for action in hygiene_report.action_plan.immediate %}
+                                <li class="list-group-item">{{ action }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">Acțiuni pe Termen Scurt</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for action in hygiene_report.action_plan.short_term %}
+                                <li class="list-group-item">{{ action }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">Acțiuni pe Termen Lung</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for action in hygiene_report.action_plan.long_term %}
+                                <li class="list-group-item">{{ action }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('digital_hygiene') }}" class="btn btn-primary">Faceți o Nouă Evaluare</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Formular pentru evaluarea igienei digitale -->
+    <form id="hygieneForm" method="POST" action="{{ url_for('digital_hygiene') }}">
+        {% for category, questions in questionnaire.items() %}
+        <div class="category-section mb-5">
+            <h3 class="mb-4">{{ category|replace('_', ' ')|title }}</h3>
+            
+            {% for question in questions %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">{{ question.question }}</h5>
+                    <div class="options-container mt-3">
+                        {% for option in question.options %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="{{ question.id }}" 
+                                   id="{{ question.id }}_{{ option.value }}" value="{{ option.value }}" required>
+                            <label class="form-check-label" for="{{ question.id }}_{{ option.value }}">
+                                {{ option.text }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        
+        <div class="form-group text-center mt-4 mb-5">
+            <button type="submit" class="btn btn-primary btn-lg">Generează Raportul</button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

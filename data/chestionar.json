@@ -1,0 +1,162 @@
+{
+    "account_security": [
+      {
+        "id": "pass_strength",
+        "question": "Cât de puternice sunt parolele tale?",
+        "options": [
+          {"value": 1, "text": "Simple, ușor de ghicit (ex. 'parola123', nume, date)"},
+          {"value": 2, "text": "Moderate (combinație de litere și cifre, dar scurte)"},
+          {"value": 3, "text": "Puternice (lungi, cu litere mari/mici, cifre, simboluri)"},
+          {"value": 4, "text": "Unice și puternice pentru fiecare cont important"}
+        ]
+      },
+      {
+        "id": "pass_reuse",
+        "question": "Folosești aceeași parolă (sau parole similare) pentru mai multe site-uri/aplicații?",
+        "options": [
+          {"value": 1, "text": "Da, pentru majoritatea conturilor"},
+          {"value": 2, "text": "Da, pentru unele conturi mai puțin importante"},
+          {"value": 3, "text": "Rar, doar la conturi nesemnificative"},
+          {"value": 4, "text": "Nu, folosesc parole diferite pentru fiecare cont"}
+        ]
+      },
+      {
+        "id": "mfa_usage",
+        "question": "Folosești verificarea suplimentară la login (cod prin SMS sau aplicație), numită și autentificare cu 2 factori (2FA)?",
+        "options": [
+          {"value": 1, "text": "Nu folosesc și nu prea știu ce este"},
+          {"value": 2, "text": "Doar dacă sunt obligat(ă) de site/aplicație"},
+          {"value": 3, "text": "Da, pentru conturile foarte importante (email, bancă)"},
+          {"value": 4, "text": "Da, pentru toate conturile unde este posibil"}
+        ]
+      }
+    ],
+    "data_sharing": [
+      {
+        "id": "personal_info_sharing",
+        "question": "Cât de multe informații personale (ex. adresă, telefon, data nașterii) postezi sau oferi online?",
+        "options": [
+          {"value": 1, "text": "Foarte multe, nu sunt atent(ă) la ce distribui"},
+          {"value": 2, "text": "Destul de multe, dar evit datele foarte sensibile"},
+          {"value": 3, "text": "Încerc să limitez, ofer doar informații de bază"},
+          {"value": 4, "text": "Foarte puține, ofer doar minimul necesar"}
+        ]
+      },
+      {
+        "id": "app_permissions",
+        "question": "Când instalezi o aplicație nouă, verifici ce permisiuni cere (acces la cameră, locație, contacte)?",
+        "options": [
+          {"value": 1, "text": "Niciodată, accept totul direct"},
+          {"value": 2, "text": "Uneori mă uit, dar de obicei accept totul"},
+          {"value": 3, "text": "Verific și refuz permisiunile care mi se par suspecte"},
+          {"value": 4, "text": "Verific mereu cu atenție și acord doar permisiunile strict necesare"}
+        ]
+      },
+      {
+        "id": "location_sharing",
+        "question": "Permiți aplicațiilor (inclusiv social media) să îți acceseze locația?",
+        "options": [
+          {"value": 1, "text": "Da, majoritatea aplicațiilor au acces mereu"},
+          {"value": 2, "text": "Da, dar doar când folosesc aplicația respectivă"},
+          {"value": 3, "text": "Doar aplicațiile care chiar au nevoie (ex. Hărți)"},
+          {"value": 4, "text": "În general dezactivez locația, o activez doar la nevoie"}
+        ]
+      }
+    ],
+    "device_security": [
+      {
+        "id": "device_updates",
+        "question": "Cât de repede instalezi actualizările pentru telefon/computer (sistem de operare și aplicații)?",
+        "options": [
+          {"value": 1, "text": "Rar sau niciodată, le amân mereu"},
+          {"value": 2, "text": "După ceva timp, când îmi amintesc sau sunt forțat(ă)"},
+          {"value": 3, "text": "Destul de repede, în câteva zile de la apariție"},
+          {"value": 4, "text": "Imediat ce apar, am actualizări automate active"}
+        ]
+      },
+      {
+        "id": "antivirus_usage",
+        "question": "Folosești o soluție de securitate (antivirus) pe computerul/telefonul tău?",
+        "options": [
+          {"value": 1, "text": "Nu folosesc niciun antivirus"},
+          {"value": 2, "text": "Doar ce vine preinstalat cu sistemul (ex. Windows Defender)"},
+          {"value": 3, "text": "Am instalat unul, dar nu știu dacă e actualizat"},
+          {"value": 4, "text": "Da, folosesc un antivirus actualizat constant"}
+        ]
+      },
+      {
+        "id": "physical_security",
+        "question": "Câtă grijă ai de telefonul/laptopul tău în locuri publice (ex. cafenele, transport)?",
+        "options": [
+          {"value": 1, "text": "Nu prea am grijă, îl mai las nesupravegheat"},
+          {"value": 2, "text": "Sunt atent(ă), dar nu folosesc blocare automată a ecranului"},
+          {"value": 3, "text": "Îl țin mereu aproape și folosesc blocare automată"},
+          {"value": 4, "text": "Sunt foarte vigilent(ă), nu îl las din ochi și e mereu blocat când nu îl folosesc"}
+        ]
+      }
+    ],
+    "social_media": [
+      {
+        "id": "privacy_settings",
+        "question": "Pe rețelele sociale, profilul tău și postările tale sunt vizibile pentru oricine sau doar pentru prieteni?",
+        "options": [
+          {"value": 1, "text": "Oricine poate vedea tot (Profil Public)"},
+          {"value": 2, "text": "Unele lucruri sunt publice, altele private"},
+          {"value": 3, "text": "Majoritatea lucrurilor sunt vizibile doar pentru prieteni"},
+          {"value": 4, "text": "Am verificat setările și totul este cât mai privat posibil"}
+        ]
+      },
+      {
+        "id": "post_awareness",
+        "question": "Când postezi pe social media, te gândești cine ar putea vedea informația și cum ar putea fi folosită?",
+        "options": [
+          {"value": 1, "text": "Nu prea mă gândesc, postez ce simt pe moment"},
+          {"value": 2, "text": "Mă gândesc uneori, mai ales la postări sensibile"},
+          {"value": 3, "text": "Sunt destul de atent(ă) la ce postez și cine vede"},
+          {"value": 4, "text": "Sunt foarte precaut(ă), evit să postez detalii personale sau locații exacte"}
+        ]
+      },
+      {
+        "id": "friend_requests",
+        "question": "Accepți cereri de prietenie/urmărire de la persoane pe care nu le cunoști în viața reală?",
+        "options": [
+          {"value": 1, "text": "Da, accept aproape pe oricine"},
+          {"value": 2, "text": "Accept dacă profilul pare interesant sau avem prieteni comuni"},
+          {"value": 3, "text": "Rar, doar dacă am un motiv clar sau verific profilul"},
+          {"value": 4, "text": "Nu, accept doar persoane pe care le cunosc"}
+        ]
+      }
+    ],
+    "browsing_habits": [
+      {
+        "id": "public_wifi",
+        "question": "Cum te comporți când folosești rețele Wi-Fi gratuite (din cafenele, aeroporturi, etc.)?",
+        "options": [
+          {"value": 1, "text": "Mă conectez la orice rețea și fac orice (banking, cumpărături)"},
+          {"value": 2, "text": "Mă conectez, dar evit site-urile cu date importante"},
+          {"value": 3, "text": "Folosesc doar rețele care par sigure și doar pentru navigare simplă"},
+          {"value": 4, "text": "Evit Wi-Fi public sau folosesc un VPN (conexiune securizată)"}
+        ]
+      },
+      {
+        "id": "download_habits",
+        "question": "Cât de atent(ă) ești când descarci fișiere sau programe de pe internet?",
+        "options": [
+          {"value": 1, "text": "Descarc de oriunde fără să verific sursa"},
+          {"value": 2, "text": "Mă uit rapid dacă site-ul pare OK"},
+          {"value": 3, "text": "Descarc doar de pe site-uri cunoscute sau oficiale"},
+          {"value": 4, "text": "Folosesc doar surse de încredere și verific fișierele descărcate"}
+        ]
+      },
+      {
+        "id": "vpn_usage",
+        "question": "Folosești un VPN (serviciu care îți securizează și ascunde conexiunea la internet)?",
+        "options": [
+          {"value": 1, "text": "Nu, niciodată sau nu știu ce este"},
+          {"value": 2, "text": "Foarte rar, poate pentru a accesa un site blocat"},
+          {"value": 3, "text": "Ocazional, mai ales pe rețele Wi-Fi publice"},
+          {"value": 4, "text": "Da, îl folosesc regulat pentru mai multă confidențialitate/securitate"}
+        ]
+      }
+    ]
+  }
