@@ -1,0 +1,150 @@
+/* Header */
+.header {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.header h1 {
+    font-size: 1.8rem;
+    color: #2c3e50;
+}
+
+.header p {
+    color: #7f8c8d;
+    margin-top: 5px;
+}
+
+/* Section Overrides */
+.section h3 {
+    font-size: 1.2rem;
+    color: #2c3e50;
+    margin: 15px 0 10px;
+}
+
+.section ul {
+    list-style: none;
+    margin: 10px 0;
+}
+
+.section ul li {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 0.95rem;
+}
+
+.section ul li:last-child {
+    border-bottom: none;
+}
+
+.section a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.section a:hover {
+    text-decoration: underline;
+}
+
+/* Form Section */
+.form-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.form-section form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.form-section label {
+    font-size: 0.95rem;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.form-section select {
+    padding: 10px;
+    font-size: 0.95rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.form-section button {
+    padding: 12px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.form-section button:hover {
+    background: #2980b9;
+}
+
+/* Alerts */
+.alert-warning {
+    color: #f1c40f;
+    background: #fff3e0;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-size: 0.95rem;
+}
+
+.alert-danger {
+    color: #e74c3c;
+    background: #ffebee;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-size: 0.95rem;
+}
+
+/* Request Template */
+.request-template {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.request-template h4 {
+    font-size: 1.1rem;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.request-template p, .request-template pre {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+
+.request-template pre {
+    white-space: pre-wrap;
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .form-section form {
+        max-width: 100%;
+    }
+}

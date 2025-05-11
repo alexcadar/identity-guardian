@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Anti-Dox Toolkit - Identity Guardian{% endblock %}
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/antidox.css') }}">
+{% endblock %}
+{% block content %}
+    <!-- Header -->
+    <header class="header">
+        <h1>Anti-Dox Toolkit</h1>
+        <p>Resurse și ghiduri pentru reducerea expunerii datelor personale online</p>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="alert-warning">
+            <p><strong>Atenție:</strong> Acest toolkit oferă resurse pentru protecția împotriva doxxing-ului (expunerea informațiilor personale online fără consimțământ).</p>
+        </div>
+
+        <!-- Removal Guides Section -->
+        <section class="section">
+            <h2>Ghiduri de Eliminare Date</h2>
+            {% if guides %}
+                <h3>Data Brokers</h3>
+                <ul>
+                    {% for broker in guides.data_brokers %}
+                        <li>
+                            <strong>{{ broker.name }}</strong>: {{ broker.description }}
+                            <br>Opt-out: <a href="{{ broker.opt_out_url }}">{{ broker.opt_out_url }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <h3>Rețele Sociale</h3>
+                <ul>
+                    {% for platform in guides.social_media %}
+                        <li>
+                            <strong>{{ platform.name }}</strong>: {{ platform.description }}
+                            <br>Setări: <a href="{{ platform.privacy_url }}">{{ platform.privacy_url }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <h3>Motoare de Căutare</h3>
+                <ul>
+                    {% for engine in guides.search_engines %}
+                        <li>
+                            <strong>{{ engine.name }}</strong>: {{ engine.description }}
+                            <br>Eliminare: <a href="{{ engine.removal_url }}">{{ engine.removal_url }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Ghidurile nu sunt disponibile momentan.</p>
+            {% endif %}
+        </section>
+
+        <!-- Removal Request Generator -->
+        <section class="form-section">
+            <h2>Generator Cereri de Eliminare</h2>
+            <form method="post" action="{{ url_for('antidox_toolkit') }}">
+                <div>
+                    <label for="data_type">Tipul de Date:</label>
+                    <select id="data_type" name="data_type" required>
+                        <option value="" selected disabled>Selectați tipul de date</option>
+                        <option value="full_name">Nume Complet</option>
+                        <option value="home_address">Adresă</option>
+                        <option value="phone_number">Telefon</option>
+                        <option value="email_address">Email</option>
+                        <option value="social_media_profiles">Profil Social Media</option>
+                        <option value="photos">Fotografii</option>
+                        <option value="government_id">Acte Identitate</option>
+                        <option value="financial_information">Informații Financiare</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="service">Serviciul:</label>
+                    <select id="service" name="service" required>
+                        <option value="" selected disabled>Selectați serviciul</option>
+                        <option value="google">Google</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="twitter">Twitter</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="reddit">Reddit</option>
+                        <option value="data_brokers">Data Brokers</option>
+                        <option value="people_search_sites">Site-uri de Căutare Persoane</option>
+                    </select>
+                </div>
+                <button type="submit">Generează Cerere</button>
+            </form>
+        </section>
+
+        <!-- Request Template Display -->
+        {% if request_template and request_template.status == 'success' %}
+            <section class="request-template">
+                <h4>Subiect Email:</h4>
+                <p>{{ request_template.subject }}</p>
+                
+                <h4>Conținut Email:</h4>
+                <pre>{{ request_template.body }}</pre>
+                
+                <h4>Instrucțiuni:</h4>
+                <p>{{ request_template.instructions }}</p>
+                
+                {% if request_template.additional_notes %}
+                    <h4>Note Adiționale:</h4>
+                    <p>{{ request_template.additional_notes }}</p>
+                {% endif %}
+            </section>
+        {% elif request_template and request_template.status == 'error' %}
+            <div class="alert-danger">
+                {{ request_template.message }}
+            </div>
+        {% endif %}
+
+        <!-- Emergency Plan -->
+        <section class="section">
+            <h2>Plan de Urgență pentru Doxxing</h2>
+            <ul>
+                <li><strong>Documentați:</strong> Faceți capturi de ecran ale conținutului</li>
+                <li><strong>Raportați:</strong> Contactați platformele pentru eliminare</li>
+                <li><strong>Securizați:</strong> Schimbați parolele și activați 2FA</li>
+                <li><strong>Alertați:</strong> Informați instituțiile financiare dacă e cazul</li>
+                <li><strong>Autorități:</strong> Contactați poliția pentru cazuri grave</li>
+            </ul>
+        </section>
+    </div>
+{% endblock %}

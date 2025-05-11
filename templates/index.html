@@ -1,12 +1,46 @@
-<!-- templates/index.html -->
 {% extends "base.html" %}
-{% block title %}Identity Guardian{% endblock %}
+{% block title %}Identity Guardian - Protecția Identității Tale Online{% endblock %}
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+{% endblock %}
 {% block content %}
-<h1>Identity Guardian</h1>
-<p>A Self-Defense Toolkit for Online Identity Protection</p>
-<ul>
-    <li><a href="/exposure-monitor">Exposure Monitor</a></li>
-    <li><a href="/digital-hygiene">Digital Hygiene</a></li>
-    <li><a href="/antidox-toolkit">Anti-Dox Toolkit</a></li>
-</ul>
+    <!-- Banner -->
+    <section class="banner">
+        <h1>Protejează-ți Identitatea Online</h1>
+        <p>Identity Guardian te ajută să monitorizezi expunerea datelor, să evaluezi securitatea digitală și să reduci riscurile de doxxing.</p>
+        <a href="{{ url_for('dashboard') }}" class="banner-cta">Începe Acum</a>
+    </section>
+
+    <!-- Module Sections -->
+    <div class="container">
+        <section class="section">
+            <h2>Monitor de Expunere</h2>
+            <p>Verifică automat dacă adresa ta de email sau username-ul au fost expuse în breșe de securitate sau menționate online. Primești o evaluare a riscurilor și recomandări personalizate.</p>
+            <a href="{{ url_for('exposure_monitor') }}">Află mai multe</a>
+        </section>
+
+        <section class="section">
+            <h2>Generator de Raport de Igienă Digitală</h2>
+            <p>Completează un chestionar interactiv pentru a evalua practicile tale de securitate digitală. Obții un scor, identifici slăbiciuni și primești un plan de acțiune.</p>
+            <a href="{{ url_for('digital_hygiene') }}">Află mai multe</a>
+        </section>
+
+        <section class="section">
+            <h2>Anti-Dox Toolkit</h2>
+            <p>Accesează ghiduri detaliate și cereri personalizate pentru a elimina informațiile personale de pe platforme online și a preveni doxxing-ul.</p>
+            <a href="{{ url_for('antidox_toolkit') }}">Află mai multe</a>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <h2>Începe Protecția Identității Tale</h2>
+            <p>Cu Identity Guardian, ai toate instrumentele necesare pentru a-ți securiza prezența online. Explorează modulele și ia controlul asupra datelor tale!</p>
+            <a href="{{ url_for('dashboard') }}">Accesează Dashboard-ul</a>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Identity Guardian. Toate drepturile rezervate.</p>
+    </footer>
 {% endblock %}

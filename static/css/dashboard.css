@@ -1,0 +1,154 @@
+/* Header */
+.dashboard-header {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.dashboard-header h1 {
+    font-size: 1.8rem;
+    color: #2c3e50;
+}
+
+.dashboard-header p {
+    color: #7f8c8d;
+    margin-top: 5px;
+}
+
+/* Dashboard Layout */
+.dashboard {
+    display: grid;
+    gap: 20px;
+}
+
+/* Report List */
+.report-list {
+    list-style: none;
+}
+
+.report-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.report-item:last-child {
+    border-bottom: none;
+}
+
+.report-item:hover {
+    background-color: #f9f9f9;
+}
+
+.report-details {
+    flex: 1;
+}
+
+.report-details p {
+    margin: 5px 0;
+    font-size: 0.95rem;
+}
+
+.report-details .report-type {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.report-details .report-timestamp {
+    color: #7f8c8d;
+    font-size: 0.85rem;
+}
+
+.report-details .report-risk {
+    color: #e74c3c;
+}
+
+.report-details .report-risk.low {
+    color: #27ae60;
+}
+
+.report-details .report-risk.medium {
+    color: #f1c40f;
+}
+
+.report-actions a {
+    text-decoration: none;
+    color: #3498db;
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border: 1px solid #3498db;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.report-actions a:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 20px;
+    color: #7f8c8d;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.pagination-btn {
+    padding: 8px 12px;
+    border: 1px solid #3498db;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #3498db;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(.disabled) {
+    background-color: #3498db;
+    color: white;
+}
+
+.pagination-btn.disabled {
+    color: #7f8c8d;
+    border-color: #ddd;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    font-size: 0.9rem;
+    color: #2c3e50;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .report-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .report-actions a {
+        width: 100%;
+        text-align: center;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+}

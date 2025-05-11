@@ -7,11 +7,10 @@ Main application file (app.py) - Modified for Global Data Persistence (No Flask 
 """
 
 import logging
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect, url_for # Eliminat import 'session'
 import os
 import json
-import sqlite3
-from datetime import datetime
+from datetime import datetime # Necesar pentru timestamp
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -20,25 +19,27 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 try:
     import config
 except ImportError:
+    # Minimal fallback config
     class MockConfig:
-        SECRET_KEY = os.environ.get("SECRET_KEY", "default_secret_key_please_change")
+        SECRET_KEY = os.environ.get("SECRET_KEY", "default_secret_key_please_change") # NECESAR PENTRU FLASH
         DEBUG = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
         HOST = os.environ.get("FLASK_HOST", "127.0.0.1")
         PORT = int(os.environ.get("FLASK_PORT", 5000))
         ENABLE_LLM_REPORTS = os.environ.get("ENABLE_LLM_REPORTS", "true").lower() == "true"
-        DB_PATH = 'identity_guardian.db'
+        DB_PATH = 'identity_guardian.db' # Numele DB-ului tău
     config = MockConfig()
     logging.warning("config.py not found, using environment variables or defaults.")
     if config.SECRET_KEY == "default_secret_key_please_change":
         logging.critical("CRITICAL: Flask SECRET_KEY is not set securely! Flash messages might not work properly.")
 
-# Initialize Flask Application
+# --- Initialize Flask Application ---
 app = Flask(__name__)
+# Cheia secretă RĂMÂNE necesară pentru ca mecanismul flash() să funcționeze
 app.secret_key = config.SECRET_KEY
 if not app.secret_key:
     logging.critical("CRITICAL: Flask SECRET_KEY is not set. Flash messages will not work.")
 
-# Import Module Functions
+# --- Import Module Functions ---
 try:
     from modules.exposure_monitor import check_email_exposure, search_username_exposure
 except ImportError:
@@ -57,24 +58,28 @@ except ImportError:
 try:
     from modules.antidox_toolkit import get_removal_guides
 except ImportError:
-    logging.error("Could not import from modules.antidox_toolkit")
-    def get_removal_guides(*args, **kwargs): return None
+     logging.error("Could not import from modules.antidox_toolkit")
+     def get_removal_guides(*args, **kwargs): return None
 
-# Import and Initialize Utilities & Database
+# --- Import and Initialize Utilities & Database ---
 try:
     from utils.api_clients import initialize_api_clients
 except ImportError:
-    logging.error("Could not import/initialize from utils.api_clients")
-    def initialize_api_clients(): pass
+     logging.error("Could not import/initialize from utils.api_clients")
+     def initialize_api_clients(): pass
 
 try:
     from utils.llm_handler import initialize_llm
 except ImportError:
-    logging.error("Could not import/initialize from utils.llm_handler")
-    def initialize_llm(): pass
+     logging.error("Could not import/initialize from utils.llm_handler")
+     def initialize_llm(): pass
 
 try:
-    from utils.database import save_report, get_reports_by_type, get_report_detail
+    # --- Folosim DB-ul adaptat (fără session_id) ---
+    from utils.database import (
+        # Am eliminat register_session
+        save_report, get_reports_by_type, get_report_detail
+    )
     DATABASE_AVAILABLE = True
 except ImportError:
     logging.critical("CRITICAL: Could not import database functions from utils.database. Database features unavailable.")
@@ -83,64 +88,49 @@ except ImportError:
     def get_reports_by_type(*args, **kwargs): return []
     def get_report_detail(*args, **kwargs): return None
 
-# Helper Functions for Report Detail
-def fetch_mentions(report_id):
-    try:
-        report_data = get_report_detail(report_id)
-        if report_data and report_data.get('full_report', {}).get('username_report', {}).get('found_on'):
-            return [{'source': m.get('platform', 'Unknown'), 'url': m.get('url', ''), 'snippet': m.get('note', '')} for m in report_data['full_report']['username_report']['found_on']]
-        return []
-    except Exception as e:
-        app.logger.error(f"Error fetching mentions for report {report_id}: {e}")
-        return []
 
-def fetch_recommendations(report_id, type_):
-    try:
-        report_data = get_report_detail(report_id)
-        if report_data and report_data.get('full_report', {}).get('email_report', {}).get('recommendations'):
-            return report_data['full_report']['email_report'].get('recommendations', []) if type_ == 'email' else report_data['full_report'].get('username_report', {}).get('recommendations', [])
-        return []
-    except Exception as e:
-        app.logger.error(f"Error fetching recommendations for report {report_id}, type {type_}: {e}")
-        return []
-
-# Initialize external services at startup within app context
+# --- Initialize external services at startup within app context ---
 with app.app_context():
     try:
         initialize_api_clients()
     except Exception as e:
-        app.logger.error(f"Error initializing API Clients: {e}", exc_info=True)
+         app.logger.error(f"Error initializing API Clients: {e}", exc_info=True) # Folosim app.logger
     try:
         initialize_llm()
     except Exception as e:
-        app.logger.error(f"Error initializing LLM Handler: {e}", exc_info=True)
+         app.logger.error(f"Error initializing LLM Handler: {e}", exc_info=True) # Folosim app.logger
 
-# Route Definitions
+# --- ELIMINAT @app.before_request handle_session ---
+
+# --- Route Definitions ---
 
 @app.route('/')
 def index():
     """Render the home/landing page."""
     return render_template('index.html', title="Identity Guardian - Protejează-ți Identitatea Digitală")
 
-# Exposure Monitor
+# --- Exposure Monitor ---
 @app.route('/exposure-monitor', methods=['GET', 'POST'])
 def exposure_monitor():
     """Handle the exposure monitor page and form submission."""
-    last_check_summary = None
-    current_results = None
+    last_check_summary = None # Pentru a afișa ultimul rezultat
+    current_results = None # Rezultatele generate în request-ul curent
 
+    # --- Logică GET: Încărcăm ultimul raport salvat (fără session_id) ---
     if request.method == 'GET' and DATABASE_AVAILABLE:
+        # Acum încarcă ultimul raport de expunere global
         previous_checks = get_reports_by_type('exposure', limit=1)
         if previous_checks:
             last_check_summary = previous_checks[0]
             app.logger.info(f"Found last global exposure check: {last_check_summary.get('report_id')}")
 
+    # --- Logică POST: Procesăm formularul ---
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         username = request.form.get('username', '').strip()
 
         if not email and not username:
-            flash('Introduceți cel puțin un email sau un username pentru verificare.', 'warning')
+             flash('Introduceți cel puțin un email sau un username pentru verificare.', 'warning')
         elif not DATABASE_AVAILABLE:
             flash('Funcționalitatea bazei de date nu este disponibilă.', 'danger')
         else:
@@ -148,44 +138,51 @@ def exposure_monitor():
                 email_results = check_email_exposure(email) if email else None
                 username_results = search_username_exposure(username) if username else None
 
+                # Structura completă a rezultatelor curente
                 current_results = {
                     'query': {'email': email, 'username': username},
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'timestamp': datetime.now().isoformat(),
                     'email_report': email_results,
                     'username_report': username_results,
-                    'combined_risk': 'low'
+                    'combined_risk': 'low' # Calcul risk sumar (ca înainte)
                 }
+                # Determinare risk_level sumar (ca înainte)
                 if email_results and email_results.get('risk_level') in ['high', 'medium']:
                     current_results['combined_risk'] = email_results.get('risk_level')
-                elif username_results and username_results.get('found_on'):
-                    current_results['combined_risk'] = 'medium' if current_results['combined_risk'] == 'low' else current_results['combined_risk']
+                elif username_results and username_results.get('mentions'):
+                     current_results['combined_risk'] = 'medium' if current_results['combined_risk'] == 'low' else current_results['combined_risk']
 
                 flash('Verificare expunere completă.', 'success')
 
+                # Salvăm în baza de date simplificată FĂRĂ session_id
                 summary_data = {
                     'type': 'exposure', 'email': email, 'username': username,
                     'risk': current_results['combined_risk'],
                     'breach_count': email_results.get('total_breaches', 0) if email_results else 0,
-                    'mention_count': len(username_results.get('found_on', [])) if username_results else 0
+                    'mention_count': len(username_results.get('mentions', [])) if username_results else 0
                 }
+                # Apel save_report fără session_id
                 report_id = save_report('exposure', summary_data, current_results)
                 if report_id:
                     app.logger.info(f"Exposure check saved with global ID {report_id}")
                     current_results['report_id'] = report_id
+                    # Actualizăm sumarul ultimului raport pentru afișare imediată
                     last_check_summary = {'report_id': report_id, 'timestamp': current_results['timestamp'], 'summary_data': summary_data}
                 else:
-                    app.logger.error("Failed to save exposure check")
+                     app.logger.error("Failed to save exposure check")
 
             except Exception as e:
                 app.logger.error(f"Error during exposure check: {e}", exc_info=True)
                 flash('A apărut o eroare în timpul verificării expunerii. Încercați din nou.', 'danger')
 
+    # Pasează ultimul sumar găsit și rezultatele curente (dacă există)
     return render_template('exposure.html',
                           title="Monitorizare Expunere - Identity Guardian",
                           last_check=last_check_summary,
-                          current_results=current_results)
+                          current_results=current_results
+                          )
 
-# Digital Hygiene
+# --- Digital Hygiene ---
 @app.route('/digital-hygiene', methods=['GET', 'POST'])
 def digital_hygiene():
     """Handle the digital hygiene assessment page and form submission."""
@@ -193,58 +190,63 @@ def digital_hygiene():
     questionnaire = {}
     current_report = None
 
+    # Întotdeauna încărcăm chestionarul
     try:
         questionnaire = load_questionnaire()
     except Exception as e:
         app.logger.error(f"Failed to load questionnaire in route: {e}", exc_info=True)
         flash('Eroare la încărcarea chestionarului.', 'danger')
 
+    # --- Logică GET: Încărcăm ultimul raport global ---
     if request.method == 'GET' and DATABASE_AVAILABLE:
         previous_reports = get_reports_by_type('hygiene', limit=1)
         if previous_reports:
             last_report_summary = previous_reports[0]
             app.logger.info(f"Found last global hygiene report: {last_report_summary.get('report_id')}")
 
+    # --- Logică POST: Procesăm formularul și generăm raportul ---
     if request.method == 'POST':
         form_data = request.form.to_dict()
         if not form_data:
-            flash('Nu au fost primite date din formular.', 'warning')
+             flash('Nu au fost primite date din formular.', 'warning')
         elif not DATABASE_AVAILABLE:
-            flash('Funcționalitatea bazei de date nu este disponibilă.', 'danger')
+             flash('Funcționalitatea bazei de date nu este disponibilă.', 'danger')
         else:
             try:
                 processed_data = process_hygiene_form(form_data)
                 if processed_data:
                     current_report = generate_hygiene_report(processed_data)
                     if current_report:
-                        flash('Raportul de igienă digitală a fost generat cu succes!', 'success')
-                        summary_data = {
-                            'type': 'hygiene',
-                            'score': current_report.get('overall_score', 0),
-                            'risk': current_report.get('risk_level', 'necunoscut')
-                        }
-                        report_id = save_report('hygiene', summary_data, current_report)
-                        if report_id:
-                            app.logger.info(f"Hygiene report saved with global ID {report_id}")
-                            current_report['report_id'] = report_id
-                            last_report_summary = {'report_id': report_id, 'timestamp': current_report['generated_at'], 'summary_data': summary_data}
-                        else:
-                            app.logger.error("Failed to save hygiene report")
+                         flash('Raportul de igienă digitală a fost generat cu succes!', 'success')
+                         # Salvăm în DB FĂRĂ session_id
+                         summary_data = {
+                              'type': 'hygiene',
+                              'score': current_report.get('overall_score', 0),
+                              'risk': current_report.get('risk_level', 'necunoscut')
+                         }
+                         report_id = save_report('hygiene', summary_data, current_report) # Fără session_id
+                         if report_id:
+                              app.logger.info(f"Hygiene report saved with global ID {report_id}")
+                              current_report['report_id'] = report_id
+                              last_report_summary = {'report_id': report_id, 'timestamp': current_report['generated_at'], 'summary_data': summary_data}
+                         else:
+                              app.logger.error("Failed to save hygiene report")
                     else:
-                        flash('Nu s-a putut genera raportul de igienă.', 'danger')
+                         flash('Nu s-a putut genera raportul de igienă.', 'danger')
                 else:
                     flash('Nu s-au putut procesa datele formularului.', 'danger')
             except Exception as e:
-                app.logger.error(f"Error processing hygiene form or generating report: {e}", exc_info=True)
-                flash('A apărut o eroare internă la procesarea evaluării.', 'danger')
+                 app.logger.error(f"Error processing hygiene form or generating report: {e}", exc_info=True)
+                 flash('A apărut o eroare internă la procesarea evaluării.', 'danger')
 
     return render_template('hygiene.html',
                           title="Evaluare Igienă Digitală - Identity Guardian",
                           questionnaire=questionnaire,
                           last_report=last_report_summary,
-                          current_hygiene_report=current_report)
+                          current_hygiene_report=current_report
+                          )
 
-# Anti-Dox Toolkit
+# --- Anti-Dox Toolkit ---
 @app.route('/antidox-toolkit')
 def antidox_toolkit():
     """Render the anti-dox toolkit page with guides."""
@@ -252,89 +254,86 @@ def antidox_toolkit():
     try:
         guides = get_removal_guides()
     except Exception as e:
-        app.logger.error(f"Failed to get removal guides: {e}", exc_info=True)
-        flash('Nu s-au putut încărca resursele Anti-Doxxing.', 'warning')
+         app.logger.error(f"Failed to get removal guides: {e}", exc_info=True)
+         flash('Nu s-au putut încărca resursele Anti-Doxxing.', 'warning')
 
+    # Am eliminat complet salvarea removal requests de aici
     return render_template('antidox.html',
                           title="Anti-Dox Toolkit - Identity Guardian",
                           guides=guides)
 
-# Report Detail Route
+# --- Rută Detaliu Raport Generic ---
 @app.route('/report-detail/<int:report_id>')
 def report_detail(report_id):
     """Show details of a specific report (hygiene or exposure)."""
     if not DATABASE_AVAILABLE:
-        flash("Funcționalitatea bazei de date nu este disponibilă.", "danger")
-        return redirect(url_for('dashboard'))
+         flash("Funcționalitatea bazei de date nu este disponibilă.", "danger")
+         return redirect(url_for('index'))
 
     report_data = get_report_detail(report_id)
+
     if not report_data:
         flash('Raportul specificat nu a fost găsit.', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('index')) # Poți redirecta la dashboard_simple dacă îl recreezi
+
+    # --- ELIMINAT VERIFICAREA SESSION ID ---
 
     module_type = report_data.get('module_type')
     full_report = report_data.get('full_report')
 
-    if not module_type or not full_report or (isinstance(full_report, dict) and 'error' in full_report):
+    if not module_type or not full_report or isinstance(full_report, dict) and 'error' in full_report :
         flash(f'Datele raportului {report_id} sunt incomplete sau corupte.', 'error')
+        # Verificăm explicit eroarea de parsare JSON
         if isinstance(full_report, dict) and 'error' in full_report:
-            app.logger.error(f"Cannot display report detail for {report_id} due to JSON parsing error.")
-        return redirect(url_for('dashboard'))
+             app.logger.error(f"Cannot display report detail for {report_id} due to JSON parsing error.")
+        return redirect(url_for('index')) # Redirect la index dacă raportul e invalid
 
-    if module_type == 'exposure':
-        current_results = {
-            'query': {
-                'email': full_report.get('query', {}).get('email', ''),
-                'username': full_report.get('query', {}).get('username', '')
-            },
-            'combined_risk': full_report.get('combined_risk', 'unknown'),
-            'email_report': {
-                'total_breaches': full_report.get('email_report', {}).get('total_breaches', 0),
-                'breaches': full_report.get('email_report', {}).get('breaches', []),
-                'intelx_results': full_report.get('email_report', {}).get('intelx_results', []),
-                'dehashed_results': full_report.get('email_report', {}).get('dehashed_results', []),
-                'leakcheck_results': full_report.get('email_report', {}).get('leakcheck_results', []),
-                'recommendations': fetch_recommendations(report_id, 'email')
-            },
-            'username_report': {
-                'mentions': fetch_mentions(report_id),
-                'recommendations': fetch_recommendations(report_id, 'username')
-            }
-        }
-        return render_template('report_detail.html',
-                              title=f"Detalii Raport Expunere - Identity Guardian",
-                              current_results=current_results)
-    else:
-        flash("Acest raport nu este de tip expunere.", "danger")
-        return redirect(url_for('dashboard'))
+    # Alegem template-ul în funcție de tipul de modul
+    template_name = f"{module_type}_detail.html"
+    title = f"Detaliu Raport {module_type.capitalize()} - Identity Guardian"
 
-# Dashboard Route
+    try:
+        # Randăm template-ul specific
+        return render_template(template_name, title=title, report=full_report)
+    except Exception as e:
+         app.logger.error(f"Template '{template_name}' not found or error rendering detail for report {report_id}: {e}", exc_info=True)
+         # Fallback: Afișăm JSON-ul brut
+         return render_template('report_detail_generic.html',
+                                title=f"Detaliu Brut Raport {report_id}",
+                                report_json=json.dumps(full_report, indent=2, ensure_ascii=False),
+                                report_id=report_id,
+                                module_type=module_type)
+
+
+# --- Rută Dashboard Simplificat (Nouă) ---
 @app.route('/dashboard')
-def dashboard():
+def dashboard(): # Am redenumit funcția pentru a evita conflicte
     """Render a simplified dashboard showing recent activity."""
     if not DATABASE_AVAILABLE:
         flash("Funcționalitatea bazei de date nu este disponibilă.", "danger")
         return redirect(url_for('index'))
 
     try:
+        # Acum încarcă istoricul global, nu cel de sesiune
         exposure_history = get_reports_by_type('exposure', limit=5)
         hygiene_history = get_reports_by_type('hygiene', limit=5)
+        # removal_history = get_reports_by_type('removal', limit=5) # Dacă implementezi
     except Exception as e:
-        app.logger.error(f"Error fetching reports for dashboard: {e}", exc_info=True)
-        flash("Eroare la încărcarea istoricului.", "danger")
-        exposure_history = []
-        hygiene_history = []
+         app.logger.error(f"Error fetching reports for dashboard: {e}", exc_info=True)
+         flash("Eroare la încărcarea istoricului.", "danger")
+         exposure_history = []
+         hygiene_history = []
+         # removal_history = []
 
-    exposure_page = request.args.get('exposure_page', default=1, type=int)
-    if exposure_page < 1:
-        exposure_page = 1
-    
+    # Folosim NOUL template dashboard.html (cel simplificat)
     return render_template('dashboard.html',
+                          title="Istoric Activitate - Identity Guardian",
                           exposure_history=exposure_history,
-                          hygiene_history=hygiene_history,
-                          exposure_page=exposure_page)
+                          hygiene_history=hygiene_history)
+                          # removal_history=removal_history
 
-# Error Handlers
+
+# --- Error Handlers (Rămân la fel) ---
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('error.html', error_code=404, error_message="Pagina nu a fost găsită"), 404
@@ -344,17 +343,21 @@ def internal_server_error(e):
     app.logger.error(f"Internal Server Error: {e}", exc_info=True)
     return render_template('error.html', error_code=500, error_message="Eroare Internă Server"), 500
 
-# Run Application
+
+# --- Run Application (Rămâne la fel) ---
 if __name__ == '__main__':
     if not app.secret_key or app.secret_key == "default_secret_key_please_change":
-        print("\n!!! ATENȚIE: Flask SECRET_KEY nu este setată sau este nesigură !!!\n")
+         print("\n!!! ATENȚIE: Flask SECRET_KEY nu este setată sau este nesigură !!!\n")
+         # exit(1)
+
+    # Inițializează BD explicit aici (dacă importul nu a reușit)
+    if not DATABASE_AVAILABLE:
+         from utils.database import init_database
+         if init_database(): DATABASE_AVAILABLE = True # Încearcă inițializarea
 
     if not DATABASE_AVAILABLE:
-        from utils.database import init_database
-        if init_database(): DATABASE_AVAILABLE = True
+         print("\n!!! ATENȚIE: NU S-A PUTUT CONECTA/INIȚIALIZA BAZA DE DATE !!!")
+         print("!!! Aplicația va rula FĂRĂ persistența datelor. !!!\n")
 
-    if not DATABASE_AVAILABLE:
-        print("\n!!! ATENȚIE: NU S-A PUTUT CONECTA/INIȚIALIZA BAZA DE DATE !!!")
-        print("!!! Aplicația va rula FĂRĂ persistența datelor. !!!\n")
 
     app.run(debug=config.DEBUG, host=config.HOST, port=config.PORT)

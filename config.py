@@ -22,7 +22,9 @@ HOST = '0.0.0.0'  # Listen on all interfaces
 PORT = 5000  # Default Flask port
 SECRET_KEY = secrets.token_hex(16)  # Generate a random secret key for sessions
 SESSION_LIFETIME = timedelta(hours=1)  # Session expiration time
-
+# SQLite database settings
+# Use a relative path to the data directory for the SQLite database
+DB_PATH = os.path.join(os.path.dirname(__file__), 'identity_guardian.db')
 # API Keys - Replace with your actual API keys or use environment variables
 # To use environment variables, uncomment the lines below and set the values in your environment
 

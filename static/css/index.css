@@ -1,0 +1,112 @@
+/* Banner */
+.banner {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    text-align: center;
+    padding: 60px 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.banner h1 {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+}
+
+.banner p {
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.banner-cta {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 24px;
+    background: white;
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.banner-cta:hover {
+    background: #2c3e50;
+    color: white;
+}
+
+/* Section Overrides */
+.section p {
+    font-size: 0.95rem;
+    color: #7f8c8d;
+    margin-bottom: 10px;
+}
+
+.section a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.section a:hover {
+    text-decoration: underline;
+}
+
+/* CTA Section */
+.cta-section {
+    text-align: center;
+    padding: 40px 20px;
+    background: #2c3e50;
+    color: white;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.cta-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+}
+
+.cta-section p {
+    font-size: 1rem;
+    max-width: 600px;
+    margin: 0 auto 20px;
+}
+
+.cta-section a {
+    padding: 12px 24px;
+    background: #3498db;
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.cta-section a:hover {
+    background: #2980b9;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 20px 0;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .banner h1 {
+        font-size: 1.8rem;
+    }
+
+    .banner p {
+        font-size: 1rem;
+    }
+
+    .cta-section h2 {
+        font-size: 1.5rem;
+    }
+}

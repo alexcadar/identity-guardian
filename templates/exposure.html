@@ -1,22 +1,90 @@
-<!-- templates/exposure.html -->
 {% extends "base.html" %}
-{% block title %}Exposure Monitor{% endblock %}
+{% block title %}Monitor de Expunere - Identity Guardian{% endblock %}
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/exposure.css') }}">
+{% endblock %}
 {% block content %}
-<h1>Exposure Monitor</h1>
-<form method="post">
-    <div>
-        <label for="email">Email Address:</label>
-        <input type="email" id="email" name="email" required>
-    </div>
-    <div>
-        <label for="username">Username (optional):</label>
-        <input type="text" id="username" name="username">
-    </div>
-    <button type="submit">Check Exposure</button>
-</form>
+    <!-- Header -->
+    <header class="header">
+        <h1>Monitor de Expunere</h1>
+        <p>Verifică dacă datele tale personale au fost expuse în breșe de securitate sau menționate online.</p>
+    </header>
 
-{% if results %}
-<h2>Results</h2>
-<pre>{{ results|tojson(indent=2) }}</pre>
-{% endif %}
+    <!-- Flash Messages -->
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <p class="flash-{{ category }}">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Form Section -->
+        <section class="form-section">
+            <form method="post">
+                <div>
+                    <label for="email">Adresă de Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div>
+                    <label for="username">Username (opțional):</label>
+                    <input type="text" id="username" name="username">
+                </div>
+                <button type="submit">Verifică Expunerea</button>
+            </form>
+        </section>
+
+        <!-- Current Results Section -->
+        {% if current_results %}
+            <section class="results-section">
+                <h2>Rezultate Verificare</h2>
+                <div class="results-details">
+                    {% if current_results.query.email %}
+                        <p><strong>Email:</strong> {{ current_results.query.email }}</p>
+                    {% endif %}
+                    {% if current_results.query.username %}
+                        <p><strong>Username:</strong> {{ current_results.query.username }}</p>
+                    {% endif %}
+                    <p><strong>Nivel risc:</strong> <span class="report-risk {{ current_results.combined_risk }}">{{ current_results.combined_risk | capitalize }}</span></p>
+                    <p><strong>Încălcări detectate:</strong> {{ current_results.email_report.total_breaches if current_results.email_report else 0 }}</p>
+                    <p><strong>Mențiuni găsite:</strong> {{ current_results.username_report.found_on | length if current_results.username_report else 0 }}</p>
+                    {% if current_results.report_id %}
+                        <p><a href="{{ url_for('report_detail', report_id=current_results.report_id) }}" class="view-details-link">Vezi Detalii Complete</a></p>
+                    {% endif %}
+                </div>
+            </section>
+        {% endif %}
+
+        <!-- Last Check Section -->
+        {% if last_check and not current_results %}
+            <section class="results-section">
+                <h2>Ultima Verificare</h2>
+                <div class="results-details">
+                    {% if last_check.summary_data.email %}
+                        <p><strong>Email:</strong> {{ last_check.summary_data.email }}</p>
+                    {% endif %}
+                    {% if last_check.summary_data.username %}
+                        <p><strong>Username:</strong> {{ last_check.summary_data.username }}</p>
+                    {% endif %}
+                    <p><strong>Nivel risc:</strong> <span class="report-risk {{ last_check.summary_data.risk }}">{{ last_check.summary_data.risk | capitalize }}</span></p>
+                    <p><strong>Încălcări detectate:</strong> {{ last_check.summary_data.breach_count }}</p>
+                    <p><strong>Mențiuni găsite:</strong> {{ last_check.summary_data.mention_count }}</p>
+                    <p><a href="{{ url_for('report_detail', report_id=last_check.report_id) }}" class="view-details-link">Vezi Detalii</a></p>
+                </div>
+            </section>
+        {% endif %}
+    </div>
+
+    <script>
+        // JavaScript for Collapse Functionality
+        document.querySelectorAll('.results-section h2').forEach(header => {
+            header.addEventListener('click', () => {
+                const section = header.parentElement;
+                section.classList.toggle('collapsed');
+            });
+        });
+    </script>
 {% endblock %}
