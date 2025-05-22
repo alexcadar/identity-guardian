@@ -61,9 +61,3 @@ Identity Guardian este un toolkit de apărare pentru protecția identității on
 - **Igienă Digitală**: Completează chestionarul pentru a primi un raport de securitate.
 - **Anti-Dox Toolkit**: Selectează tipurile de date și motivul pentru a genera cereri GDPR.
 - **Dashboard**: Vizualizează rapoartele anterioare.
-
-## Note
-
-- Aplicația rulează local, fără a stoca date pe servere externe (cu excepția apelurilor API).
-- Asigură-te că fișierul `identity_guardian.log` are permisiuni de scriere.
-- Pentru suport, consultă documentația API-urilor utilizate sau contactează echipa de dezvoltare.
