@@ -37,14 +37,13 @@ Identity Guardian este un toolkit de apărare pentru protecția identității on
 4. **Configurează variabilele de mediu**:
    Creează un fișier `.env` în directorul proiectului și adaugă cheile API:
    ```plaintext
-   HIBP_API_KEY=<your-hibp-api-key>
-   GOOGLE_API_KEY=<your-google-api-key>
-   GOOGLE_CSE_ID=<your-google-cse-id>
-   GEMINI_API_KEY=<your-gemini-api-key>
-   INTELLX=<your-intelx-api-key>
-   DEHASHED=<your-dehashed-api-key>
-   DEHASHED_EMAIL=<your-dehashed-email>
-   LEAK_CHECK=<your-leakcheck-api-key>
+    HIBP_API_KEY="" #Necesita abonament
+    GOOGLE_API_KEY="" #Free in google cloud console - https://console.cloud.google.com/apis
+    GOOGLE_CSE_ID="" #Free in google cloud console - urmareste documentatia https://support.google.com/programmable-search/answer/12499034?hl=en
+    GEMINI_API_KEY="" #Free in google cloud console - https://console.cloud.google.com/apis
+    LEAK_CHECK="" #Necesita abonament
+    DEHASHED="" #Necesita abonament
+    INTELLX="" #versiune free limitata
    ```
 
 5. **Inițializează baza de date**:
