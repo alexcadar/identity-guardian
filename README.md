@@ -19,7 +19,7 @@ Identity Guardian este un toolkit de apărare pentru protecția identității on
 
 1. **Clonează repository-ul**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/alexcadar/identity-guardian.git
    cd identity-guardian
    ```
 
