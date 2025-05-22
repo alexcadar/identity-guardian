@@ -1,11 +1,32 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
+
+# Database
 *.sqlite3
+identity_guardian.db
 
 # Environment
 venv/
 .env
+*.env
 
-# VS Code settings (dacă folosești)
+# Logs
+*.log
+identity_guardian.log
+
+# VS Code settings
 .vscode/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Project-specific
+/data/*.json  # Dacă chestionar.json sau alte fișiere JSON conțin date sensibile

@@ -268,3 +268,28 @@ OSError: [Errno 98] Address already in use
 2025-05-08 20:16:59,675 [INFO] __main__ (app.<module>:68): Database initialized successfully.
 2025-05-08 20:16:59,677 [INFO] __main__ (app.<module>:361): Starting Flask development server on 0.0.0.0:5001 (Debug Mode: True)
 2025-05-08 21:22:17,757 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-12 20:41:41,400 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-12 21:32:48,617 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-12 21:39:45,632 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-12 22:24:02,357 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-12 22:44:08,748 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-13 16:12:25,043 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-13 16:13:06,448 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-13 16:13:25,890 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-13 16:16:35,187 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-13 16:16:37,437 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-13 16:19:59,710 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-13 16:20:05,832 [INFO] modules.antidox_toolkit: Generating removal guides for supported platforms
+2025-05-13 16:20:05,836 [INFO] modules.antidox_toolkit: Generating GDPR removal request for data_type='email_address' and service='instagram'
+2025-05-13 16:20:05,836 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for instagram
+2025-05-13 17:12:05,349 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='en' and data_type='full_name'
+2025-05-13 17:16:17,427 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='ro' and data_type='full_name'
+2025-05-13 17:22:32,438 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='en' and data_type='full_name'
+2025-05-13 17:22:55,177 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='ro' and data_type='full_name'
+2025-05-13 17:23:02,881 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='en' and data_type='full_name'
+2025-05-13 17:25:55,677 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='ro' and data_type='full_name'
+2025-05-13 17:29:13,923 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='en', data_type='full_name', reason='no_longer_necessary'
+2025-05-13 17:30:07,458 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='ro', data_type='email_address', reason='no_longer_necessary'
+2025-05-13 17:41:35,468 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='ro', data_types=['full_name', 'home_address'], reason='withdraw_consent'
+2025-05-13 17:43:02,408 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='en', data_types=['home_address', 'phone_number'], reason='no_longer_necessary'
+2025-05-13 17:51:24,432 [INFO] modules.antidox_toolkit: Successfully generated GDPR request for language='ro', data_types=['home_address', 'phone_number'], reason='object_processing'

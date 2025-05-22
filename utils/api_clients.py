@@ -11,7 +11,7 @@ import json
 import logging
 import time
 import datetime
-from requests.exceptions import RequestException, Timeout
+from requests.exceptions import RequestException, Timeout, HTTPError
 from dotenv import load_dotenv
 import os
 import base64
@@ -46,11 +46,11 @@ api_configs = {
     },
     'intelx': {
         'initialized': False,
-        'base_url': 'https://free.intelx.io/',  # Primary endpoint for free tier
+        'base_url': 'https://free.intelx.io/',
         'api_key': os.getenv('INTELLX', ''),
         'rate_limit': 2.0,
-        'max_poll_attempts': 5,  # Max attempts to poll for results
-        'poll_interval': 2.0  # Seconds between polling attempts
+        'max_poll_attempts': 5,
+        'poll_interval': 2.0
     },
     'dehashed': {
         'initialized': False,
@@ -65,6 +65,12 @@ api_configs = {
         'public_base_url': 'https://leakcheck.io/api/public',
         'api_key': os.getenv('LEAK_CHECK', ''),
         'rate_limit': 1.5
+    },
+    'wayback': {
+        'initialized': True,
+        'base_url': 'http://web.archive.org/cdx/search/cdx',
+        'rate_limit': 1.0,
+        'last_request_time': 0
     }
 }
 
@@ -84,9 +90,14 @@ def initialize_api_clients():
     # Initialize Google Custom Search API
     if hasattr(config, 'GOOGLE_API_KEY') and hasattr(config, 'GOOGLE_CSE_ID'):
         api_configs['google_search']['api_key'] = config.GOOGLE_API_KEY
-        api_configs['google_search']['search_engine_id'] = config.GOOGLE_CSE_ID
+        # Sanitize GOOGLE_CSE_ID to remove any erroneous 'cx=' prefix
+        cse_id = config.GOOGLE_CSE_ID
+        if cse_id.startswith('cx='):
+            cse_id = cse_id[3:]  # Remove 'cx=' prefix
+            #logger.warning(f"Removed 'cx=' prefix from GOOGLE_CSE_ID. Using: {cse_id}")
+        api_configs['google_search']['search_engine_id'] = cse_id
         api_configs['google_search']['initialized'] = True
-        logger.info("Google Custom Search API client initialized")
+        logger.info(f"Google Custom Search API client initialized with CSE ID: {cse_id}")
     else:
         logger.warning("Google Search API configuration not found. Search features will be limited.")
     
@@ -118,6 +129,9 @@ def initialize_api_clients():
         logger.info("LeakCheck API client initialized")
     else:
         logger.warning("LeakCheck API key not found in .env. Falling back to public API for LeakCheck.")
+    
+    # Initialize Wayback Machine API
+    logger.info("Wayback Machine API client initialized with endpoint: %s", api_configs['wayback']['base_url'])
 
 def hibp_api_request(endpoint, api_key=None):
     """
@@ -192,77 +206,259 @@ def hibp_api_request(endpoint, api_key=None):
     return None
 
 def google_search(query, num_results=10):
+    logger.debug(f"Executing Google Search with query: {query}")
     """
-    Perform a Google search using the Custom Search API.
-    
+    Perform a Google search using the Custom Search API with improved error handling.
+
     Args:
         query (str): The search query
         num_results (int): Number of results to return (max 10 per request)
-    
+
     Returns:
         list: Search results or empty list if error
     """
     if not api_configs['google_search']['initialized']:
         logger.warning("Google Search API not initialized. Cannot perform search.")
         return []
-    
+
+    if not query: # Prevent sending empty queries
+        logger.warning("Google Search attempted with an empty query.")
+        return []
+
     params = {
         'key': api_configs['google_search']['api_key'],
         'cx': api_configs['google_search']['search_engine_id'],
         'q': query,
         'num': min(num_results, 10)
     }
-    
+
+    # Log the parameters being used (crucial for debugging)
+    logger.debug("--- Google Search API Call ---")
+    logger.debug(f"  Target URL: {api_configs['google_search']['base_url']}")
+    # Log partial key for verification without exposing the full key
+    logger.debug(f"  Using Key: {params['key'][:5]}...{params['key'][-5:] if params['key'] and len(params['key']) > 10 else params['key']}")
+    logger.debug(f"  Using CX: {params['cx']}")
+    logger.debug(f"  Using Query: '{params['q']}'")
+    logger.debug(f"  Using Num: {params['num']}")
+    # Optional: Log the full URL that requests will build (for manual testing)
+    # logger.debug(f"  Full Request URL (approx): {api_configs['google_search']['base_url']}?{urlencode(params)}")
+    logger.debug("-----------------------------")
+
+
     try:
         response = requests.get(
-            api_configs['google_search']['base_url'], 
+            api_configs['google_search']['base_url'],
             params=params,
-            timeout=10
+            timeout=15 # Slightly increased timeout
         )
+
+        # Raise an exception for bad status codes (4xx or 5xx)
+        response.raise_for_status()
+
+        # If successful (status 200)
+        data = response.json()
+        if 'items' in data:
+            logger.info(f"Google Search returned {len(data['items'])} results for query: '{query}'")
+            return data['items']
+        else:
+            logger.info(f"No Google Search results found for query: '{query}'")
+            return []
+
+    except Timeout:
+        logger.error(f"Google Search API request timed out for query: '{query}'")
+        return []
+    except HTTPError as http_err:
+        logger.error(f"Google Search API HTTP error occurred: {http_err}")
+        try:
+            # Attempt to parse the error response from Google for more details
+            error_data = response.json()
+            error_message = error_data.get('error', {}).get('message', response.text)
+            logger.error(f"Google Search API Error Details: {error_message}")
+            # Log the specific error details if available (like the previous 'API key expired' message)
+            if 'details' in error_data.get('error', {}):
+                 logger.error(f"Google Search API Error Details JSON: {json.dumps(error_data['error']['details'])}")
+        except json.JSONDecodeError:
+            logger.error(f"Google Search API Error Response (non-JSON): {response.text}")
+        return []
+    except RequestException as req_err:
+        logger.error(f"Google Search API request failed (RequestException): {req_err}")
+        return []
+    except json.JSONDecodeError as json_err:
+         logger.error(f"Failed to decode Google Search API JSON response: {json_err} - Response text: {response.text[:200]}")
+         return []
+    except Exception as e:
+        logger.error(f"An unexpected error occurred during Google Search: {e}", exc_info=True)
+        return []
+
+def wayback_cdx_search(query, paste_sites, is_full_name=False, num_results=10):
+    """
+    Search Wayback Machine CDX Server API for archived pages containing the query.
+    
+    Args:
+        query (str): The search term (username or full name)
+        paste_sites (list): List of paste site domains to search (e.g., ['pastebin.com'])
+        is_full_name (bool): Flag to indicate if the query is a full name
+        num_results (int): Maximum number of results to return
+    
+    Returns:
+        list: Formatted search results or empty list if error
+    """
+    if not api_configs['wayback']['initialized']:
+        logger.warning("Wayback Machine API not initialized. Cannot perform search.")
+        return []
+
+    # Construct query parameters
+    search_term = f'"{query}"'
+    
+    
+    # Combine multiple paste sites with OR
+    url_query = ' OR '.join([f'*{site}' for site in paste_sites])
+    
+    params = {
+        'url': url_query,
+        'output': 'json',
+        'limit': num_results,
+        'fl': 'url,timestamp,original,mimetype',
+        'filter': 'mimetype:text/plain|mimetype:text/html'  # Include HTML for broader coverage
+    }
+
+    try:
+        current_time = time.time()
+        time_since_last_request = current_time - api_configs['wayback']['last_request_time']
+        if time_since_last_request < api_configs['wayback']['rate_limit']:
+            wait_time = api_configs['wayback']['rate_limit'] - time_since_last_request
+            logger.debug(f"Waiting {wait_time:.2f}s for Wayback rate limit")
+            time.sleep(wait_time)
+        
+        api_configs['wayback']['last_request_time'] = time.time()
+        logger.debug(f"Executing Wayback CDX Search with query: {url_query}")
+        
+        response = requests.get(api_configs['wayback']['base_url'], params=params, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
-            if 'items' in data:
-                return data['items']
-            return []
+            if not data or len(data) <= 1:
+                logger.info(f"No Wayback results found for query: {query}")
+                return []
+            
+            formatted_results = []
+            for row in data[1:]:
+                if len(row) >= 4:
+                    formatted_results.append({
+                        'title': 'Archived Paste',
+                        'url': f"https://web.archive.org/web/{row[1]}/{row[2]}",
+                        'snippet': '',
+                        'source': next((site for site in paste_sites if site in row[2]), 'unknown'),
+                        'date': datetime.datetime.strptime(row[1], '%Y%m%d%H%M%S').strftime('%Y-%m-%d')
+                    })
+            
+            logger.info(f"Found {len(formatted_results)} Wayback results for query: {query}")
+            return formatted_results
         else:
-            logger.error(f"Google Search API error {response.status_code}: {response.text}")
+            logger.error(f"Wayback CDX API error {response.status_code}: {response.text}")
             return []
     
+    except Timeout:
+        logger.error("Wayback CDX API request timed out")
+        return []
+    except RequestException as e:
+        logger.error(f"Wayback CDX API request failed: {str(e)}")
+        return []
     except Exception as e:
-        logger.error(f"Error with Google Search API: {str(e)}")
+        logger.error(f"Unexpected error with Wayback CDX API: {str(e)}")
         return []
 
-def search_pastebin(query):
+def search_pastebin(query, is_full_name=False, num_results=10):
     """
-    Search for content on Pastebin related to a query.
+    Search for content on Pastebin and similar paste sites related to a query using Wayback Machine and Google Search.
     
     Args:
-        query (str): The search term
+        query (str): The search term (username or full name)
+        is_full_name (bool): Flag to indicate if the query is a full name
+        num_results (int): Number of results to return (max 10 per request)
     
     Returns:
-        list: Search results or empty list if error
+        list: Formatted search results or empty list if error
     """
-    dork_query = f"site:pastebin.com {query}"
+    paste_sites = ['pastebin.com', 'justpaste.it', 'paste.ee', 'controlc.com', 'ghostbin.co', 'doxbin.net']
     
-    try:
-        results = google_search(dork_query)
-        formatted_results = []
-        for item in results:
-            url = item.get('link')
-            if url and 'pastebin.com' in url:
-                formatted_results.append({
-                    'title': item.get('title', 'Untitled Paste'),
-                    'url': url,
-                    'snippet': item.get('snippet', ''),
-                    'source': 'pastebin',
-                    'date': datetime.datetime.now().strftime('%Y-%m-%d')
-                })
-        return formatted_results
+    # Try Wayback Machine CDX API first
+    wayback_results = wayback_cdx_search(query, paste_sites, is_full_name, num_results)
     
-    except Exception as e:
-        logger.error(f"Error searching Pastebin: {str(e)}")
-        return []
+    # Fallback to Google Search if no Wayback results and Google is initialized
+    google_results = []
+    if not wayback_results and api_configs['google_search']['initialized']:
+        search_term = query
+        site_query = ' OR '.join([f'site:{site}' for site in paste_sites])
+        full_query = f"{site_query} {search_term} -blog -forum"
+        
+        # --- LOG INTEROGARE CONSTRUITĂ ---
+        logger.debug(f"Constructed Google Search query for paste sites: '{full_query}'")
+        try:
+            # Adaugă un log PENTRU A VEDEA RĂSPUNSUL BRUT de la google_search
+            raw_google_items = google_search(full_query, num_results=num_results)
+            logger.debug(f"Raw items returned by google_search for '{full_query}': {json.dumps(raw_google_items, indent=2)}") # Log răspuns brut
+
+            # Procesează raw_google_items în loc de 'results' dacă ai schimbat numele variabilei
+            for item in raw_google_items: # Folosește raw_google_items
+                url = item.get('link')
+                # Verifică dacă URL-ul este valid și aparține unuia dintre site-urile căutate
+                if url and any(site in url for site in paste_sites):
+                    # --- Modificare posibilă la contains_sensitive ---
+                    # Verifică dacă snippet-ul conține termenul căutat (insensibil la majuscule/minuscule)
+                    snippet_lower = item.get('snippet', '').lower()
+                    term_lower = query.lower() # Termenul căutat, cu litere mici
+                    keywords = ['password', 'credentials', 'login', 'leak', 'private', 'key', 'token', 'secret']
+                    sensitive_keyword_present = any(k in snippet_lower for k in keywords)
+                    term_present_in_snippet = term_lower in snippet_lower
+
+                    google_results.append({
+                        'title': item.get('title', 'Untitled Paste'),
+                        'url': url,
+                        'snippet': item.get('snippet', ''),
+                        'source': next((site for site in paste_sites if site in url), 'unknown'),
+                        'date': datetime.now().strftime('%Y-%m-%d'),
+                        'contains_sensitive': term_present_in_snippet and sensitive_keyword_present # Ajustat logica
+                    })
+                    # ----------------------------------------------------
+            logger.info(f"Processed {len(google_results)} Google results after filtering for query: '{query}'")
+        except Exception as e:
+            logger.error(f"Error searching paste sites with Google: {str(e)}")
+        try:
+            logger.debug(f"Executing Google Search with query: {full_query}")
+            results = google_search(full_query, num_results=num_results)
+            logger.debug(f"Raw Google Search results for query '{query}': {results}")
+            for item in results:
+                url = item.get('link')
+                if url and any(site in url for site in paste_sites):
+                    result = {
+                        'title': item.get('title', 'Untitled Paste'),
+                        'url': url,
+                        'snippet': item.get('snippet', ''),
+                        'source': next((site for site in paste_sites if site in url), 'unknown'),
+                        'date': datetime.datetime.now().strftime('%Y-%m-%d'),
+                        'contains_sensitive': 'password' in item.get('snippet', '').lower() or 
+                                             'credentials' in item.get('snippet', '').lower() or
+                                             'login' in item.get('snippet', '').lower()
+                    }
+                    google_results.append(result)
+                    logger.debug(f"Added Google Search result: {result}")
+            logger.info(f"Found {len(google_results)} Google results for query: {query}")
+        except Exception as e:
+            logger.error(f"Error searching paste sites with Google: {str(e)}")
+    
+    # Combine and deduplicate results
+    combined_results = wayback_results + google_results
+    seen_urls = set()
+    unique_results = []
+    for result in combined_results:
+        if result['url'] not in seen_urls:
+            seen_urls.add(result['url'])
+            unique_results.append(result)
+            logger.debug(f"Kept combined result: {result}")
+    
+    logger.debug(f"Returning {len(unique_results)} unique results for query: {query}")
+    return unique_results[:num_results]
 
 def gemini_request(prompt, max_tokens=1024):
     """
@@ -335,14 +531,13 @@ def intelx_search(query):
     payload = {
         'term': query,
         'maxresults': 10,
-        'media': 0,  # All media types
-        'sort': 2,   # Sort by date (2 is commonly used per API docs)
-        'timeout': 20,  # API-side timeout in seconds
-        'lookuplevel': 0  # Basic lookup level for free tier
+        'media': 0,
+        'sort': 2,
+        'timeout': 20,
+        'lookuplevel': 0
     }
     
     try:
-        # Rate limiting for search submission
         current_time = time.time()
         time_since_last_request = current_time - api_configs['intelx'].get('last_request_time', 0)
         if time_since_last_request < api_configs['intelx']['rate_limit']:
@@ -353,7 +548,6 @@ def intelx_search(query):
         api_configs['intelx']['last_request_time'] = time.time()
         logger.debug(f"Submitting Intelligence X POST request to {search_url} with query: {query}")
         
-        # Submit search query
         response = requests.post(search_url, headers=headers, json=payload, timeout=10)
         
         if response.status_code == 200:
@@ -363,7 +557,6 @@ def intelx_search(query):
                 search_id = data['id']
                 logger.info(f"Intelligence X search submitted successfully. ID: {search_id}")
                 
-                # Poll for results
                 results_url = f"{base_url}intelligent/search/result?id={search_id}"
                 result_headers = {
                     'x-key': api_configs['intelx']['api_key'],
@@ -384,7 +577,7 @@ def intelx_search(query):
                                 'source': 'intelx',
                                 'title': record.get('name', 'Untitled Result'),
                                 'date': record.get('date', record.get('added', datetime.datetime.now().strftime('%Y-%m-%d'))),
-                                'url': record.get('storageid', ''),  # Use storageid as URL placeholder
+                                'url': record.get('storageid', ''),
                                 'excerpt': record.get('preview', {}).get('data', record.get('content', '')),
                                 'category': record.get('media_type_name', record.get('type', 'unknown'))
                             } for record in result_data.get('records', [])]

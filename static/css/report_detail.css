@@ -47,22 +47,64 @@
 }
 
 /* Breach/Mention List */
-.breach-list, .mention-list {
+.breach-list,
+.mention-list {
     list-style: none;
     margin: 10px 0;
 }
 
-.breach-item, .mention-item {
+.breach-item,
+.mention-item {
     padding: 10px;
     border-bottom: 1px solid #eee;
 }
 
-.breach-item:last-child, .mention-item:last-child {
+.breach-item:last-child,
+.mention-item:last-child {
     border-bottom: none;
 }
 
-.breach-item p, .mention-item p {
+.breach-item p,
+.mention-item p {
     font-size: 0.9rem;
+}
+
+.description {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: -10px;
+    margin-bottom: 15px;
+}
+
+/* Disclaimer Box */
+.disclaimer-box {
+    background-color: #f9f2e6;
+    /* Fundal bej deschis, similar cu imaginea */
+    border: 1px solid #ccc;
+    /* Bordură gri deschis pentru definiție */
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+/* Disclaimer Text */
+.disclaimer {
+    color: #222;
+    /* Gri închis pentru contrast bun și lizibilitate */
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Link în Disclaimer */
+.disclaimer a {
+    color: #007bff;
+    /* Albastru pentru vizibilitate */
+    text-decoration: underline;
+}
+
+.disclaimer a:hover {
+    color: #0056b3;
+    /* Nuanță mai închisă la hover */
 }
 
 /* Recommendations */
@@ -70,12 +112,14 @@
     list-style: disc;
     margin: 10px 0 0 20px;
 }
+
 .no-data {
     font-style: italic;
     color: #666;
     text-align: center;
     margin: 1em 0;
 }
+
 .recommendations li {
     margin-bottom: 10px;
     font-size: 0.95rem;

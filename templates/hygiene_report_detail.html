@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Detalii Raport Igienă Digitală - Identity Guardian{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/hygiene_report_detail.css') }}">
+{% endblock %}
+{% block content %}
+<!-- Header -->
+<header class="header">
+    <h1>Detalii Raport Igienă Digitală</h1>
+    <p>Vezi rezultatele detaliate ale evaluării tale de igienă digitală.</p>
+</header>
+
+<!-- Main Content -->
+<div class="container">
+    {% if report and report.summary_data %}
+    <!-- Report Summary -->
+    <section class="results-section">
+        <h2>Sumar Evaluare</h2>
+        <div class="results-details">
+            <p><strong>Data:</strong> {{ report.timestamp }}</p>
+            <p><strong>Scor General:</strong> {{ report.summary_data.score | default(report.summary_data.overall_score |
+                default(0, true), true) }}/100</p>
+            <p><strong>Nivel risc:</strong> <span
+                    class="report-risk {{ report.summary_data.risk | default(report.summary_data.risk_level | default('necunoscut', true), true) }}">{{
+                    report.summary_data.risk | default(report.summary_data.risk_level | default('Necunoscut', true),
+                    true) | capitalize }}</span></p>
+        </div>
+    </section>
+
+    <!-- Category Scores -->
+    <section class="results-section">
+        <h2>Scoruri pe Categorii</h2>
+        <ul class="category-list">
+            {% for category, score in report.summary_data.category_scores.items() %}
+            <li class="category-item">
+                <p><strong>{{ category | replace('_', ' ') | capitalize }}:</strong> {{ score }}/100</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <!-- Strengths -->
+    <section class="results-section">
+        <h2>Puncte Forte</h2>
+        {% if report.summary_data.strengths %}
+        <ul class="strength-list">
+            {% for strength in report.summary_data.strengths %}
+            <li>{{ strength }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">Nu au fost identificate puncte forte specifice.</p>
+        {% endif %}
+    </section>
+
+    <!-- Weaknesses -->
+    <section class="results-section">
+        <h2>Puncte Slabe</h2>
+        {% if report.summary_data.weaknesses %}
+        <ul class="weakness-list">
+            {% for weakness in report.summary_data.weaknesses %}
+            <li>{{ weakness }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">Nu au fost identificate puncte slabe specifice.</p>
+        {% endif %}
+    </section>
+
+    <!-- Recommendations -->
+    <section class="results-section">
+        <h2>Recomandări</h2>
+        {% if report.summary_data.recommendations %}
+        <ul class="recommendation-list">
+            {% for rec in report.summary_data.recommendations %}
+            <li class="recommendation-item">
+                <p><strong>Categorie:</strong> {{ rec.category | replace('_', ' ') | capitalize }}</p>
+                <p><strong>Recomandare:</strong> {{ rec.recommendation }}</p>
+                <p><strong>Prioritate:</strong> <span class="priority-{{ rec.priority }}">{{ rec.priority | capitalize
+                        }}</span></p>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">Nu sunt disponibile recomandări pentru acest raport.</p>
+        {% endif %}
+    </section>
+
+    <!-- Action Plan -->
+    <section class="results-section">
+        <h2>Plan de Acțiune</h2>
+        {% if report.summary_data.action_plan %}
+        <div class="action-plan">
+            <h3>Acțiuni Imediate</h3>
+            {% if report.summary_data.action_plan.immediate %}
+            <ul>
+                {% for action in report.summary_data.action_plan.immediate %}
+                <li>{{ action }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="no-data">Nu sunt necesare acțiuni imediate.</p>
+            {% endif %}
+
+            <h3>Acțiuni pe Termen Scurt</h3>
+            {% if report.summary_data.action_plan.short_term %}
+            <ul>
+                {% for action in report.summary_data.action_plan.short_term %}
+                <li>{{ action }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="no-data">Nu sunt necesare acțiuni pe termen scurt.</p>
+            {% endif %}
+
+            <h3>Acțiuni pe Termen Lung</h3>
+            {% if report.summary_data.action_plan.long_term %}
+            <ul>
+                {% for action in report.summary_data.action_plan.long_term %}
+                <li>{{ action }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="no-data">Nu sunt necesare acțiuni pe termen lung.</p>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="no-data">Nu este disponibil un plan de acțiune pentru acest raport.</p>
+        {% endif %}
+    </section>
+    {% else %}
+    <div class="empty-state">
+        <p>Nu s-au găsit detalii pentru acest raport sau raportul este invalid.</p>
+        <p><a href="{{ url_for('dashboard') }}">Înapoi la Dashboard</a></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,150 +1,146 @@
 {% extends "base.html" %}
 {% block title %}Detalii Raport - Identity Guardian{% endblock %}
 {% block css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/report_detail.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/report_detail.css') }}">
 {% endblock %}
 {% block content %}
-    <!-- Header -->
-    <header class="header">
-        <h1>Detalii Raport</h1>
-        <p>Vezi informațiile detaliate ale verificării tale.</p>
-    </header>
+<header class="header">
+    <h1>Detalii Raport</h1>
+    <p>Vezi informațiile detaliate ale verificării tale.</p>
+</header>
 
-    <!-- Main Content -->
-    <div class="container">
-        {% if current_results %}
-            <section class="results-section">
-                <h2>Rezultate Verificare</h2>
-                <div class="results-details">
-                    {% if current_results.query.email %}
-                        <p><strong>Email:</strong> {{ current_results.query.email }}</p>
-                    {% endif %}
-                    {% if current_results.query.username %}
-                        <p><strong>Username:</strong> {{ current_results.query.username }}</p>
-                    {% endif %}
-                    <p><strong>Nivel risc:</strong> <span class="report-risk {{ current_results.combined_risk }}">{{ current_results.combined_risk | capitalize }}</span></p>
-                    <p><strong>Încălcări detectate:</strong> {{ current_results.email_report.total_breaches if current_results.email_report else 0 }}</p>
-                    <p><strong>Mențiuni găsite:</strong> {{ current_results.username_report.found_on | length if current_results.username_report and current_results.username_report.found_on else 0 }}</p>
+<div class="container">
+    {% if report and (report['email_report'] or report['username_report']) %}
+    <section class="results-section">
+        <h2>Rezultate Verificare</h2>
+        <div class="results-details">
+            {% if report['query']['email'] %}
+            <p><strong>Email:</strong> {{ report['query']['email'] }}</p>
+            {% endif %}
+            {% if report['query']['query'] %}
+            <p><strong>{{ 'Nume Complet' if report['username_report']['input_type'] == 'full_name' else 'Username'
+                    }}:</strong> {{ report['query']['query'] }}</p>
+            {% endif %}
+            <p><strong>Nivel risc:</strong> <span class="report-risk {{ report['combined_risk'] }}">{{
+                    report['combined_risk'] | capitalize }}</span></p>
+            <p><strong>Data Breaches:</strong> {{ report['email_report']['total_breaches'] if report['email_report']
+                else 0 }}</p>
+            <p><strong>Mențiuni pe platforme sociale:</strong> {{ report['username_report']['mentions'] | length if
+                report['username_report'] and report['username_report']['mentions'] else 0 }}</p>
+            <p><strong>Mențiuni pe site-uri de tip Paste:</strong> {{ report['paste_count'] | default(0) }}</p>
+        </div>
+    </section>
+
+    {% if report['email_report'] %}
+    <section class="results-section">
+        <h2>Rezultate HaveIBeenPwned</h2>
+        {% if report['email_report']['breaches'] %}
+        <ul class="breach-list">
+            {% for breach in report['email_report']['breaches'] %}
+            <li class="breach-item">
+                <p><strong>Nume Încălcare:</strong> {{ breach['name'] if breach['name'] else 'N/A' }}</p>
+                <p><strong>Descriere:</strong></p>
+                <div class="breach-description">
+                    {{ breach['description'] | safe if breach['description'] else 'Descriere indisponibilă.' }}
                 </div>
-            </section>
-
-            {% if current_results.email_report %}
-                <section class="results-section">
-                    <h2>Detalii Încălcări Detectate (HaveIBeenPwned)</h2>
-                    {% if current_results.email_report.breaches %}
-                        <ul class="breach-list">
-                            {% for breach in current_results.email_report.breaches %}
-                                <li class="breach-item">
-                                    <p><strong>Nume Încălcare:</strong> {{ breach.name if breach.name else 'N/A' }}</p>
-                                    <p><strong>Descriere:</strong></p>
-                                    <div class="breach-description">
-                                        {{ breach.description | safe if breach.description else 'Descriere indisponibilă.' }}
-                                    </div>
-                                    <p><strong>Tipuri de date compromise:</strong> {{ breach.data_classes | join(', ') if breach.data_classes else 'Informații indisponibile.' }}</p>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="no-data">Nu au fost detectate încălcări specifice pentru emailul {{ current_results.query.email }}.</p>
-                    {% endif %}
-                </section>
-            {% endif %}
-
-            {% if current_results.email_report %}
-                <section class="results-section">
-                    <h2>Rezultate LeakCheck</h2>
-                    {% if current_results.email_report.leakcheck_results %}
-                        <ul class="breach-list">
-                            {% for result in current_results.email_report.leakcheck_results %}
-                                <li class="breach-item">
-                                    <p><strong>Nume:</strong> {{ result.name if result.name else 'N/A' }}</p>
-                                    <p><strong>Data:</strong> {{ result.date if result.date else 'N/A' }}</p>
-                                    <p><strong>Tipuri de date:</strong> {{ result.data_classes | join(', ') if result.data_classes else 'N/A' }}</p>
-                                    <p><strong>Sursă:</strong> <a href="{{ result.source_url }}" target="_blank">{{ result.source_url if result.source_url else 'N/A' }}</a></p>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="no-data">Nu există date de afișat</p>
-                    {% endif %}
-                </section>
-            {% endif %}
-
-            {% if current_results.email_report %}
-                <section class="results-section">
-                    <h2>Rezultate Intelligence X</h2>
-                    {% if current_results.email_report.intelx_results %}
-                        <ul class="breach-list">
-                            {% for result in current_results.email_report.intelx_results %}
-                                <li class="breach-item">
-                                    <p><strong>Titlu:</strong> {{ result.title if result.title else 'N/A' }}</p>
-                                    <p><strong>Data:</strong> {{ result.date if result.date else 'N/A' }}</p>
-                                    <p><strong>URL:</strong> <a href="{{ result.url }}" target="_blank">{{ result.url if result.url else 'N/A' }}</a></p>
-                                    <p><strong>Fragment:</strong> {{ result.excerpt | safe if result.excerpt else 'N/A' }}</p>
-                                    <p><strong>Categorie:</strong> {{ result.category if result.category else 'N/A' }}</p>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="no-data">Nu există date de afișat</p>
-                    {% endif %}
-                </section>
-            {% endif %}
-
-            {% if current_results.email_report %}
-                <section class="results-section">
-                    <h2>Rezultate DeHashed</h2>
-                    {% if current_results.email_report.dehashed_results %}
-                        <ul class="breach-list">
-                            {% for result in current_results.email_report.dehashed_results %}
-                                <li class="breach-item">
-                                    <p><strong>Email:</strong> {{ result.email if result.email else 'N/A' }}</p>
-                                    <p><strong>Username:</strong> {{ result.username if result.username else 'N/A' }}</p>
-                                    <p><strong>Parolă:</strong> {{ result.password if result.password else 'N/A' }}</p>
-                                    <p><strong>Sursă:</strong> {{ result.source_site if result.source_site else 'N/A' }}</p>
-                                    <p><strong>Data:</strong> {{ result.date if result.date else 'N/A' }}</p>
-                                    <p><strong>URL:</strong> <a href="{{ result.url }}" target="_blank">{{ result.url if result.url else 'N/A' }}</a></p>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="no-data">Nu există date de afișat</p>
-                    {% endif %}
-                </section>
-            {% endif %}
-
-            {% if current_results.username_report and current_results.username_report.found_on %}
-                <section class="results-section">
-                    <h2>Mențiuni Găsite</h2>
-                    <ul class="mention-list">
-                        {% for mention in current_results.username_report.found_on %}
-                            <li class="mention-item">
-                                <p><strong>Sursă:</strong> {{ mention.platform if mention.platform else 'N/A' }}</p>
-                                <p><strong>URL:</strong> <a href="{{ mention.url }}" target="_blank">{{ mention.url if mention.url else 'N/A' }}</a></p>
-                                <p><strong>Fragment:</strong> {{ mention.note | safe if mention.note else 'N/A' }}</p>
-                                <p><strong>Confirmat:</strong> {{ 'Da' if mention.confirmed else 'Nu' }}</p>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </section>
-            {% endif %}
-
-            {% if (current_results.email_report and current_results.email_report.recommendations) or (current_results.username_report and current_results.username_report.recommendations) %}
-                <section class="results-section">
-                    <h2>Recomandări</h2>
-                    <div class="recommendations">
-                        <ul>
-                            {% set email_recs = current_results.email_report.recommendations if current_results.email_report and current_results.email_report.recommendations else [] %}
-                            {% set username_recs = current_results.username_report.recommendations if current_results.username_report and current_results.username_report.recommendations else [] %}
-                            {% for recommendation in email_recs + username_recs %}
-                                <li>{{ recommendation }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </section>
-            {% endif %}
+                <p><strong>Tipuri de date compromise:</strong> {{ breach['data_classes'] | join(', ') if
+                    breach['data_classes'] else 'Informații indisponibile.' }}</p>
+            </li>
+            {% endfor %}
+        </ul>
         {% else %}
-            <p>Nu s-au găsit detalii pentru acest raport sau raportul este invalid.</p>
+        <p class="no-data">Nu au fost detectate încălcări specifice pentru emailul {{ report['query']['email'] }}.</p>
         {% endif %}
-    </div>
+    </section>
+    {% endif %}
+
+    {% if report['email_report'] or report['username_report'] %}
+    <section class="results-section">
+        <h2>Rezultate Căutare Paste sites</h2>
+        {% set google_results = (report['email_report']['pastes'] if report['email_report'] else []) +
+        (report['username_report']['pastes'] if report['username_report'] else []) %}
+        {% if google_results %}
+        <ul class="breach-list">
+            {% for result in google_results %}
+            <li class="breach-item">
+                <p><strong>Sursă:</strong> {{ result['source'] if result['source'] else 'N/A' }}</p>
+                {% if result['source'] == 'doxbin.net' %}
+                <p class="disclaimer">
+                    <strong>ATENȚIE:</strong> Accesarea doxbin.net poate implica riscuri legale (ex. încălcarea legilor
+                    de confidențialitate), de securitate (ex. malware, furt de date) și etice (ex. contribuția la
+                    hărțuire). Vă recomandăm să nu accesați acest site. Pentru mai multe informații despre pericolele
+                    asociate și cum să vă protejați, consultați
+                    <a href="{{ url_for('antidox_toolkit') }}">Anti-Dox Toolkit</a>.
+                </p>
+                {% endif %}
+                <p><strong>Titlu:</strong> {{ result['title'] if result['title'] else 'N/A' }}</p>
+                <p><strong>Data:</strong> {{ result['date'] if result['date'] else 'N/A' }}</p>
+                <p><strong>URL:</strong> <a href="{{ result['url'] }}" target="_blank">{{ result['url'] if result['url']
+                        else 'N/A' }}</a></p>
+                <p><strong>Fragment:</strong> {{ result['excerpt'] | safe if result['excerpt'] else 'N/A' }}</p>
+                <p><strong>Conține date sensibile:</strong> {{ 'Da' if result['contains_sensitive'] else 'Nu' }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">
+            Nu s-au găsit rezultate pentru
+            {% set items = [] %}
+            {% if report['query']['email'] %}
+            {% set _ = items.append('emailul ' + report['query']['email']) %}
+            {% endif %}
+            {% if report['query']['query'] %}
+            {% set _ = items.append('cuvântul ' + report['query']['query']) %}
+            {% endif %}
+            {{ items | join(' sau ') }}.
+        </p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if report['username_report'] and report['username_report']['mentions'] and
+    report['username_report']['mentions']|length > 0 %}
+    <section class="results-section">
+        <h2>Mențiuni Găsite (Platforme Sociale)</h2>
+        <ul class="mention-list">
+            {% for mention in report['username_report']['mentions'] %}
+            <li class="mention-item">
+                <p><strong>Platformă:</strong> {{ mention['platform'] | capitalize if mention['platform'] else 'N/A' }}
+                </p>
+                <p><strong>URL:</strong> <a href="{{ mention['url'] }}" target="_blank">{{ mention['url'] if
+                        mention['url'] else 'N/A' }}</a></p>
+                <p><strong>Fragment:</strong> {{ mention['snippet'] | safe if mention['snippet'] else 'N/A' }}</p>
+                <p><strong>Confirmat:</strong> {{ 'Da' if mention['confirmed'] else 'Nu' }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% else %}
+    <section class="results-section">
+        <h2>Mențiuni Găsite (Platforme Sociale)</h2>
+        <p class="no-data">Nu s-au găsit mențiuni pe platforme sociale pentru {{ report['query']['query'] }}.</p>
+    </section>
+    {% endif %}
+
+    {% if (report['email_report'] and report['email_report']['recommendations']) or
+    (report['username_report'] and report['username_report']['recommendations']) %}
+    <section class="results-section">
+        <h2>Recomandări</h2>
+        <div class="recommendations">
+            <ul>
+                {% set email_recs = report['email_report']['recommendations'] if report['email_report'] and
+                report['email_report']['recommendations'] else [] %}
+                {% set username_recs = report['username_report']['recommendations'] if
+                report['username_report'] and report['username_report']['recommendations'] else [] %}
+                {% for recommendation in email_recs + username_recs %}
+                <li>{{ recommendation }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </section>
+    {% endif %}
+    {% else %}
+    <p>Nu s-au găsit detalii pentru acest raport sau raportul este invalid.</p>
+    {% endif %}
+</div>
 {% endblock %}

@@ -15,7 +15,7 @@ from datetime import datetime
 import copy
 # Import configuration settings
 import config
-
+from utils.api_clients import google_search  
 # Import utilities
 from utils.api_clients import hibp_api_request, search_pastebin, intelx_search, dehashed_search, leakcheck_search
 from utils.regex_patterns import EMAIL_PATTERN, SENSITIVE_DATA_PATTERNS
@@ -32,37 +32,11 @@ if not logger.handlers:
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-def validate_url(url, timeout=3):
-    """
-    Check if a URL is valid and accessible.
-    
-    Args:
-        url (str): The URL to check
-        timeout (int): Timeout in seconds
-        
-    Returns:
-        bool: True if URL is valid and accessible, False otherwise
-    """
-    if not url or not isinstance(url, str):
-        return False
-        
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.head(url, timeout=timeout, allow_redirects=True, headers=headers)
-        
-        if response.status_code >= 400:
-            response = requests.get(url, timeout=timeout, stream=True, headers=headers)
-            if response.raw:
-                response.raw.read(1024)
-                response.close()
-                
-        return response.status_code < 400
-    except Exception as e:
-        logger.debug(f"URL validation failed for {url}: {str(e)}")
-        return False
-    
+
+# Regex patterns for input detection
+USERNAME_PATTERN = r'^[a-zA-Z0-9_]+$'
+FULL_NAME_PATTERN = r'^[a-zA-Z\s]+$'
+
 def check_email_exposure(email):
     """
     Check if an email has been exposed in known data breaches using HaveIBeenPwned API
@@ -95,13 +69,12 @@ def check_email_exposure(email):
     
     # Check HaveIBeenPwned API for breaches
     try:
-        # Include unverified breaches
         breach_data = hibp_api_request(f"breachedaccount/{email}?includeUnverified=true")
         logger.debug(f"Raw HIBP breach data for {email}: {json.dumps(breach_data, indent=2)}")
         
         if breach_data is None:
             logger.warning(f"Failed to retrieve HIBP data for {email}")
-        elif breach_data:  # breach_data is a list, empty list means no breaches
+        elif breach_data:
             results['breaches'] = [
                 {
                     'name': breach.get('Name', ''),
@@ -124,7 +97,6 @@ def check_email_exposure(email):
             ]
             results['total_breaches'] = len(breach_data)
             
-            # Log if critical fields are missing
             for breach in breach_data:
                 if not breach.get('Description'):
                     logger.warning(f"Missing description for breach {breach.get('Name')}")
@@ -146,7 +118,7 @@ def check_email_exposure(email):
     except Exception as e:
         logger.error(f"Error checking HaveIBeenPwned for {email}: {str(e)}")
     
-    # Check Pastebin for the email
+    # Check Pastebin and other paste sites for the email
     try:
         paste_results = search_pastebin_for_email(email)
         results['pastes'] = paste_results
@@ -154,12 +126,11 @@ def check_email_exposure(email):
         if paste_results and results['risk_level'] != 'high':
             results['risk_level'] = 'medium'
     except Exception as e:
-        logger.error(f"Error checking Pastebin for {email}: {str(e)}")
+        logger.error(f"Error checking paste sites for {email}: {str(e)}")
     
     # Check Intelligence X for additional exposure
     try:
         intelx_results = intelx_search(email)
-        logger.debug(f"Raw Intelligence X results for {email}: {json.dumps(intelx_results, indent=2)}")
         if intelx_results:
             results['intelx_results'] = intelx_results
             if len(intelx_results) > 0 and results['risk_level'] != 'high':
@@ -191,67 +162,77 @@ def check_email_exposure(email):
     except Exception as e:
         logger.error(f"Error checking LeakCheck for {email}: {str(e)}")
     
-    if results:
-        logger.info(f"Validating search results for email {email}")
-        results = validate_search_results(results, email)
-    
     return results
 
-def search_username_exposure(username):
+def search_username_exposure(query):
     """
-    Search for a username across various platforms and data sources to check exposure.
+    Search for a query (username or full name) across various platforms and data sources to check exposure.
     
     Args:
-        username (str): The username to check
+        query (str): The username or full name to check
         
     Returns:
-        dict: Results of the username exposure check
+        dict: Results of the exposure check
     """
-    if not username or len(username) < 3:
+    if not query or len(query) < 3:
         return {
             'status': 'error',
-            'message': 'Username too short or invalid'
+            'message': 'Query too short or invalid'
         }
     
+    # Determine input type
+    is_full_name = bool(re.match(FULL_NAME_PATTERN, query))
+    is_username = bool(re.match(USERNAME_PATTERN, query))
+    input_type = 'full_name' if is_full_name else 'username' if is_username else 'unknown'
+    logger.debug(f"Query '{query}' detected as {input_type}")
+
     results = {
         'status': 'success',
         'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'found_on': [],
-        'risk_level': 'low'
+        'risk_level': 'low',
+        'input_type': input_type
     }
     
     platforms = [
-        'github', 'twitter', 'reddit', 'instagram', 
-        'facebook', 'linkedin', 'youtube', 'pinterest'
+        'github.com', 'twitter.com', 'reddit.com', 'instagram.com', 
+        'facebook.com', 'linkedin.com', 'youtube.com', 'pinterest.com'
     ]
     
-    for platform in platforms:
-        if len(username) > 5 and platform in ['github', 'twitter', 'reddit']:
-            url = f"https://{platform}.com/{username}"
-            if validate_url(url):
-                results['found_on'].append({
-                    'platform': platform,
-                    'url': url,
-                    'confirmed': False,
-                    'note': 'Potential match found, manual verification needed'
-                })
+    # Search across all platforms using Google Custom Search
+    try:
+        for platform in platforms:
+            search_query = f"from:{platform} {query}"
+            search_results = google_search(search_query, num_results=5)
+            for item in search_results:
+                url = item.get('link', '')
+                if platform in url:
+                    results['found_on'].append({
+                        'platform': platform.split('.')[0],
+                        'url': url,
+                        'snippet': item.get('snippet', ''),
+                        'confirmed': False,
+                        'note': 'Potential match found, manual verification needed'
+                    })
+    except Exception as e:
+        logger.error(f"Error searching platforms for {query}: {str(e)}")
+        results['search_error'] = str(e)
     
     if len(results['found_on']) > 3:
         results['risk_level'] = 'medium'
+    elif len(results['found_on']) > 0:
+        results['risk_level'] = 'low'
     
+    # Check Pastebin and similar sites
     try:
-        paste_results = search_pastebin_for_username(username)
+        paste_results = search_pastebin_for_username(query, is_full_name=is_full_name)
         if paste_results:
             results['pastes'] = paste_results
             if any(paste.get('contains_sensitive', False) for paste in paste_results):
                 results['risk_level'] = 'high'
     except Exception as e:
-        logger.error(f"Error checking Pastebin for username: {str(e)}")
+        logger.error(f"Error checking paste sites for {query}: {str(e)}")
         results['pastebin_error'] = str(e)
-    
-    if results:
-        logger.info(f"Validating search results for username {username}")
-        results = validate_search_results({'username_results': results}, username)['username_results']
     
     return results
 
@@ -265,106 +246,52 @@ def search_pastebin_for_email(email):
     Returns:
         list: List of paste matches with metadata
     """
-    query = email.replace('@', ' ')
-    results = search_pastebin(query)
+    query = email
+    results = search_pastebin(query, is_full_name=False)
     
     matches = []
     for result in results:
-        if validate_url(result.get('url')):
-            matches.append({
-                'source': 'pastebin',
-                'title': result.get('title', 'Untitled Paste'),
-                'date': result.get('date', datetime.now().strftime('%Y-%m-%d')),
-                'url': result.get('url'),
-                'excerpt': result.get('snippet', ''),
-                'contains_sensitive': 'password' in result.get('snippet', '').lower() or 
-                                     'credentials' in result.get('snippet', '').lower() or
-                                     'login' in result.get('snippet', '').lower()
-            })
+        matches.append({
+            'source': result.get('source', 'pastebin'),
+            'title': result.get('title', 'Untitled Paste'),
+            'date': result.get('date', datetime.now().strftime('%Y-%m-%d')),
+            'url': result.get('url'),
+            'excerpt': result.get('snippet', ''),
+            'contains_sensitive': 'password' in result.get('snippet', '').lower() or 
+                                 'credentials' in result.get('snippet', '').lower() or
+                                 'login' in result.get('snippet', '').lower()
+        })
     
     return matches
 
-def search_pastebin_for_username(username):
+def search_pastebin_for_username(username, is_full_name=False):
     """
-    Search Pastebin and similar paste sites for a given username.
+    Search Pastebin and similar paste sites for a given username or full name.
     
     Args:
-        username (str): The username to search for
+        username (str): The username or full name to search for
+        is_full_name (bool): Flag to indicate if the query is a full name
         
     Returns:
         list: List of paste matches with metadata
     """
-    results = search_pastebin(username)
+    results = search_pastebin(username, is_full_name=is_full_name)
     
     matches = []
     for result in results:
-        if validate_url(result.get('url')):
-            matches.append({
-                'source': 'pastebin',
-                'title': result.get('title', 'Untitled Paste'),
-                'date': result.get('date', datetime.now().strftime('%Y-%m-%d')),
-                'url': result.get('url'),
-                'excerpt': result.get('snippet', ''),
-                'contains_sensitive': username.lower() in result.get('snippet', '').lower() and 
-                                     ('password' in result.get('snippet', '').lower() or
-                                      'credentials' in result.get('snippet', '').lower() or
-                                      'private' in result.get('snippet', '').lower())
-            })
+        matches.append({
+            'source': result.get('source', 'pastebin'),
+            'title': result.get('title', 'Untitled Paste'),
+            'date': result.get('date', datetime.now().strftime('%Y-%m-%d')),
+            'url': result.get('url'),
+            'excerpt': result.get('snippet', ''),
+            'contains_sensitive': username.lower() in result.get('snippet', '').lower() and 
+                                 ('password' in result.get('snippet', '').lower() or
+                                  'credentials' in result.get('snippet', '').lower() or
+                                  'private' in result.get('snippet', '').lower())
+        })
     
     return matches
-
-def validate_search_results(results, search_term):
-    """
-    Validate all URLs in search results and ensure they contain the search term.
-    Remove any invalid or irrelevant results.
-    
-    Args:
-        results (dict): Search results dictionary containing URLs to validate
-        search_term (str): The original search term to check for relevance
-        
-    Returns:
-        dict: Filtered results with only valid URLs
-    """
-    if not results:
-        return results
-    
-    validated_results = copy.deepcopy(results)
-    
-    if 'email_results' in validated_results:
-        email_results = validated_results['email_results']
-        
-        if email_results and 'pastes' in email_results and email_results['pastes']:
-            valid_pastes = []
-            for paste in email_results['pastes']:
-                if 'url' in paste and validate_url(paste['url']):
-                    valid_pastes.append(paste)
-                else:
-                    logger.info(f"Removing invalid paste URL: {paste.get('url')}")
-            email_results['pastes'] = valid_pastes
-    
-    if 'username_results' in validated_results:
-        username_results = validated_results['username_results']
-        
-        if username_results:
-            if 'found_on' in username_results and username_results['found_on']:
-                valid_found_on = []
-                for item in username_results['found_on']:
-                    if 'url' in item and validate_url(item['url']):
-                        valid_found_on.append(item)
-                    else:
-                        logger.info(f"Removing invalid platform URL: {item.get('url')}")
-                username_results['found_on'] = valid_found_on
-            
-            if 'pastes' in username_results and username_results['pastes']:
-                valid_pastes = []
-                for paste in username_results['pastes']:
-                    if 'url' in paste and validate_url(paste['url']):
-                        valid_pastes.append(paste)
-                    else:
-                        logger.info(f"Removing invalid paste URL: {paste.get('url')}")
-                username_results['pastes'] = valid_pastes
-    
-    return validated_results
 
 def generate_exposure_report(email_results, username_results=None):
     """

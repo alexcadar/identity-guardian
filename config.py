@@ -51,7 +51,10 @@ ENABLE_EMAIL_MONITORING = True
 ENABLE_USERNAME_MONITORING = True
 ENABLE_PASTEBIN_SEARCH = True
 ENABLE_LLM_REPORTS = True
-
+LLM_MODEL_NAME = "gemini-2.0-flash"
+LLM_FALLBACK_MODEL = "gemini-1.5-flash-001"
+LLM_TEMPERATURE = 0.7  # Optional
+LLM_MAX_TOKENS = 2048  # Optional
 # Digital Hygiene Report configuration
 HYGIENE_CATEGORIES = [
     'account_security',

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-print("Importând database.py")
 """
 Identity Guardian - Simplified Database Module
 Handles database operations using a simplified schema focused on storing reports.
@@ -13,28 +12,31 @@ import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-# Import configuration if needed (folosim același config)
+# Import configuration if needed
 try:
     import config
 except ImportError:
-    class MockConfig: DB_PATH = 'identity_guardian_simple.db' # Nume nou DB
+    class MockConfig:
+        DB_PATH = 'identity_guardian.db'  # Align with app.py
     config = MockConfig()
-    logging.warning("config.py not found, using default simple database path.")
+    logging.warning("config.py not found, using default database path.")
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Nume nou pentru a nu suprascrie DB-ul existent în teste
-DB_PATH = getattr(config, 'DB_PATH', 'identity_guardian_simple.db')
+# Use consistent database path
+DB_PATH = getattr(config, 'DB_PATH', 'identity_guardian.db')
 
 def get_db_connection() -> sqlite3.Connection:
     """Creates and returns a connection to the SQLite database."""
     try:
         db_dir = os.path.dirname(DB_PATH)
-        if db_dir and not os.path.exists(db_dir): os.makedirs(db_dir)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir)
         conn = sqlite3.connect(DB_PATH, timeout=10)
         conn.execute("PRAGMA foreign_keys = ON")
         conn.row_factory = sqlite3.Row
+        logger.debug(f"Connected to database at {os.path.abspath(DB_PATH)}")
         return conn
     except sqlite3.Error as e:
         logger.error(f"Database connection error: {e}")
@@ -65,8 +67,7 @@ def init_database() -> bool:
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_reports_type_timestamp ON Reports(module_type, timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_reports_timestamp ON Reports(timestamp)')
             conn.commit()
-            logger.info(f"Database path: {os.path.abspath(DB_PATH)}")
-            logger.info("Simplified database initialized successfully with new schema")
+            logger.info(f"Database initialized at {os.path.abspath(DB_PATH)}")
             conn.close()
             return True
 
@@ -91,7 +92,6 @@ def init_database() -> bool:
                 full_report_json TEXT NOT NULL 
             )
             ''')
-
             # Step 2: Migrate data, converting timestamp format
             cursor.execute('''
             INSERT INTO Reports_new (report_id, timestamp, module_type, summary_data_json, full_report_json)
@@ -103,15 +103,12 @@ def init_database() -> bool:
                 full_report_json
             FROM Reports
             ''')
-
             # Step 3: Drop the old table and rename the new one
             cursor.execute('DROP TABLE Reports')
             cursor.execute('ALTER TABLE Reports_new RENAME TO Reports')
-
             # Step 4: Recreate indices
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_reports_type_timestamp ON Reports(module_type, timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_reports_timestamp ON Reports(timestamp)')
-
             conn.commit()
             logger.info("Database schema migration completed: timestamp changed from TIMESTAMP to TEXT")
         else:
@@ -120,7 +117,7 @@ def init_database() -> bool:
         conn.close()
         return True
     except Exception as e:
-        logger.error(f"Simplified database initialization/migration failed: {e}")
+        logger.error(f"Database initialization/migration failed: {e}")
         if 'conn' in locals() and conn:
             conn.close()
         return False
@@ -169,7 +166,9 @@ def save_report(module_type: str, summary_data: Dict[str, Any], full_report: Dic
 def get_reports_by_type(module_type: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Retrieves a list of reports for a specific module type."""
     reports = []
-    if not module_type: return reports
+    if not module_type:
+        logger.warning("No module_type provided for get_reports_by_type")
+        return reports
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -184,11 +183,12 @@ def get_reports_by_type(module_type: str, limit: int = 10) -> List[Dict[str, Any
             (module_type, limit)
         )
         rows = cursor.fetchall()
+        logger.debug(f"Retrieved {len(rows)} rows for module_type {module_type}")
         for row in rows:
             report_summary = dict(row)
             try:
                 report_summary['summary_data'] = json.loads(report_summary['summary_data_json'])
-                del report_summary['summary_data_json'] # Eliminăm stringul raw
+                del report_summary['summary_data_json']
                 reports.append(report_summary)
             except json.JSONDecodeError:
                 logger.warning(f"Could not parse summary_data_json for report_id {row['report_id']}")
@@ -197,12 +197,15 @@ def get_reports_by_type(module_type: str, limit: int = 10) -> List[Dict[str, Any
         return reports
     except sqlite3.Error as e:
         logger.error(f"Error retrieving {module_type} reports: {e}")
-        if 'conn' in locals() and conn: conn.close()
+        if 'conn' in locals() and conn:
+            conn.close()
         return []
 
 def get_report_detail(report_id: int) -> Optional[Dict[str, Any]]:
     """Retrieves the full details of a specific report by its ID."""
-    if not report_id: return None
+    if not report_id:
+        logger.warning("No report_id provided for get_report_detail")
+        return None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -216,6 +219,7 @@ def get_report_detail(report_id: int) -> Optional[Dict[str, Any]]:
         )
         row = cursor.fetchone()
         if not row:
+            logger.warning(f"No report found for report_id {report_id}")
             conn.close()
             return None
 
@@ -223,6 +227,7 @@ def get_report_detail(report_id: int) -> Optional[Dict[str, Any]]:
         try:
             report_detail['full_report'] = json.loads(report_detail['full_report_json'])
             del report_detail['full_report_json']
+            logger.debug(f"Successfully retrieved report_id {report_id}: {report_detail}")
             conn.close()
             return report_detail
         except json.JSONDecodeError:
@@ -231,15 +236,15 @@ def get_report_detail(report_id: int) -> Optional[Dict[str, Any]]:
             report_detail['full_report'] = {'error': 'invalid JSON'}
             del report_detail['full_report_json']
             return report_detail
-
     except sqlite3.Error as e:
         logger.error(f"Error retrieving report detail for report_id {report_id}: {e}")
-        if 'conn' in locals() and conn: conn.close()
+        if 'conn' in locals() and conn:
+            conn.close()
         return None
 
 # Initialize on import
 if __name__ != '__main__':
-    init_database() # Asigurăm că DB-ul e inițializat la import
+    init_database()
 
 # For testing directly
 if __name__ == "__main__":
@@ -249,26 +254,16 @@ if __name__ == "__main__":
     print(f"Simplified DB initialization: {'Success' if init_success else 'Failed'}")
    
     if init_success:
-        # Salvează un raport de test
+        # Save a test report
         summary = {"score": 75, "risk": "medium"}
         full = {"score": 75, "risk": "medium", "recommendations": ["rec1", "rec2"]}
         report_id = save_report("hygiene", summary, full)
         print(f"Saved test hygiene report ID: {report_id}")
 
-        # Recuperează raportul
+        # Retrieve the report
         reports = get_reports_by_type("hygiene")
         print(f"Retrieved hygiene reports ({len(reports)}): {reports}")
 
         if report_id:
             detail = get_report_detail(report_id)
             print(f"Detail for report ID {report_id}: {detail}")
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    init_database()
-    summary = {"test": "data"}
-    full = {"full": "report"}
-    report_id = save_report("test", summary, full)
-    print(f"Report ID: {report_id}")
-    reports = get_reports_by_type("test")
-    print(f"Retrieved reports: {reports}")

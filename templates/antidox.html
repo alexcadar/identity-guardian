@@ -1,128 +1,260 @@
 {% extends "base.html" %}
 {% block title %}Anti-Dox Toolkit - Identity Guardian{% endblock %}
 {% block css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/antidox.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/antidox.css') }}">
 {% endblock %}
 {% block content %}
-    <!-- Header -->
-    <header class="header">
-        <h1>Anti-Dox Toolkit</h1>
-        <p>Resurse și ghiduri pentru reducerea expunerii datelor personale online</p>
-    </header>
+<!-- Header -->
+<header class="header">
+    <h1>Anti-Dox Toolkit</h1>
+    <p>Generați cereri pentru ștergerea datelor personale conform GDPR</p>
+</header>
 
-    <!-- Main Content -->
-    <div class="container">
-        <div class="alert-warning">
-            <p><strong>Atenție:</strong> Acest toolkit oferă resurse pentru protecția împotriva doxxing-ului (expunerea informațiilor personale online fără consimțământ).</p>
-        </div>
-
-        <!-- Removal Guides Section -->
-        <section class="section">
-            <h2>Ghiduri de Eliminare Date</h2>
-            {% if guides %}
-                <h3>Data Brokers</h3>
-                <ul>
-                    {% for broker in guides.data_brokers %}
-                        <li>
-                            <strong>{{ broker.name }}</strong>: {{ broker.description }}
-                            <br>Opt-out: <a href="{{ broker.opt_out_url }}">{{ broker.opt_out_url }}</a>
-                        </li>
-                    {% endfor %}
-                </ul>
-
-                <h3>Rețele Sociale</h3>
-                <ul>
-                    {% for platform in guides.social_media %}
-                        <li>
-                            <strong>{{ platform.name }}</strong>: {{ platform.description }}
-                            <br>Setări: <a href="{{ platform.privacy_url }}">{{ platform.privacy_url }}</a>
-                        </li>
-                    {% endfor %}
-                </ul>
-
-                <h3>Motoare de Căutare</h3>
-                <ul>
-                    {% for engine in guides.search_engines %}
-                        <li>
-                            <strong>{{ engine.name }}</strong>: {{ engine.description }}
-                            <br>Eliminare: <a href="{{ engine.removal_url }}">{{ engine.removal_url }}</a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>Ghidurile nu sunt disponibile momentan.</p>
-            {% endif %}
-        </section>
-
-        <!-- Removal Request Generator -->
-        <section class="form-section">
-            <h2>Generator Cereri de Eliminare</h2>
-            <form method="post" action="{{ url_for('antidox_toolkit') }}">
-                <div>
-                    <label for="data_type">Tipul de Date:</label>
-                    <select id="data_type" name="data_type" required>
-                        <option value="" selected disabled>Selectați tipul de date</option>
-                        <option value="full_name">Nume Complet</option>
-                        <option value="home_address">Adresă</option>
-                        <option value="phone_number">Telefon</option>
-                        <option value="email_address">Email</option>
-                        <option value="social_media_profiles">Profil Social Media</option>
-                        <option value="photos">Fotografii</option>
-                        <option value="government_id">Acte Identitate</option>
-                        <option value="financial_information">Informații Financiare</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="service">Serviciul:</label>
-                    <select id="service" name="service" required>
-                        <option value="" selected disabled>Selectați serviciul</option>
-                        <option value="google">Google</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="twitter">Twitter</option>
-                        <option value="instagram">Instagram</option>
-                        <option value="linkedin">LinkedIn</option>
-                        <option value="reddit">Reddit</option>
-                        <option value="data_brokers">Data Brokers</option>
-                        <option value="people_search_sites">Site-uri de Căutare Persoane</option>
-                    </select>
-                </div>
-                <button type="submit">Generează Cerere</button>
-            </form>
-        </section>
-
-        <!-- Request Template Display -->
-        {% if request_template and request_template.status == 'success' %}
-            <section class="request-template">
-                <h4>Subiect Email:</h4>
-                <p>{{ request_template.subject }}</p>
-                
-                <h4>Conținut Email:</h4>
-                <pre>{{ request_template.body }}</pre>
-                
-                <h4>Instrucțiuni:</h4>
-                <p>{{ request_template.instructions }}</p>
-                
-                {% if request_template.additional_notes %}
-                    <h4>Note Adiționale:</h4>
-                    <p>{{ request_template.additional_notes }}</p>
-                {% endif %}
-            </section>
-        {% elif request_template and request_template.status == 'error' %}
-            <div class="alert-danger">
-                {{ request_template.message }}
-            </div>
-        {% endif %}
-
-        <!-- Emergency Plan -->
-        <section class="section">
-            <h2>Plan de Urgență pentru Doxxing</h2>
-            <ul>
-                <li><strong>Documentați:</strong> Faceți capturi de ecran ale conținutului</li>
-                <li><strong>Raportați:</strong> Contactați platformele pentru eliminare</li>
-                <li><strong>Securizați:</strong> Schimbați parolele și activați 2FA</li>
-                <li><strong>Alertați:</strong> Informați instituțiile financiare dacă e cazul</li>
-                <li><strong>Autorități:</strong> Contactați poliția pentru cazuri grave</li>
-            </ul>
-        </section>
+<!-- Main Content -->
+<div class="container">
+    <div class="alert-warning">
+        <p><strong>Atenție:</strong> Acest toolkit vă ajută să generați cereri pentru ștergerea datelor personale.
+            Completați șablonul generat cu informațiile dumneavoastră și trimiteți-l operatorului de date.</p>
     </div>
+
+    <!-- Educational Expandable Boxes -->
+    <section class="info-section">
+        <div class="info-box">
+            <div class="info-box-header">
+                <h2>Ce înseamnă doxxing-ul?</h2>
+            </div>
+            <div class="info-box-content">
+                <p>Doxxing-ul este publicarea intenționată a informațiilor personale (ex. nume, adresă, telefon) fără
+                    consimțământ, cu scopul de a hărțui, umili sau pune în pericol o persoană. Este o practică ilegală
+                    care poate avea efecte grave:</p>
+                <ul>
+                    <li><strong>Siguranță personală:</strong> Risc de hărțuire sau atacuri fizice.</li>
+                    <li><strong>Reputație:</strong> Defăimare prin expunerea datelor sensibile.</li>
+                    <li><strong>Financiar:</strong> Posibil furt de identitate sau fraudă.</li>
+                </ul>
+                <p>Pentru a preveni doxxing-ul, limitează informațiile publice și folosește <a
+                        href="{{ url_for('antidox_toolkit') }}">generatorul de cereri GDPR</a> pentru a elimina datele
+                    expuse.</p>
+            </div>
+        </div>
+        <div class="info-box">
+            <div class="info-box-header">
+                <h2>Ce înseamnă furtul de identitate?</h2>
+            </div>
+            <div class="info-box-content">
+                <p>Furtul de identitate este utilizarea neautorizată a informațiilor personale (ex. nume, CNP, date
+                    bancare) pentru fraudă sau alte activități ilegale. Poate avea consecințe grave:</p>
+                <ul>
+                    <li><strong>Financiare:</strong> Pierderi de bani, credite frauduloase.</li>
+                    <li><strong>Emoționale:</strong> Stres, anxietate, pierderea încrederii.</li>
+                    <li><strong>Legale:</strong> Probleme cu autoritățile dacă datele sunt folosite ilegal.</li>
+                    <li><strong>Sociale:</strong> Afectarea reputației prin postări false.</li>
+                </ul>
+                <p>În România, peste 10.000 de cazuri sunt raportate anual, conform ANSPDCP.</p>
+            </div>
+        </div>
+        <div class="info-box">
+            <div class="info-box-header">
+                <h2>Cum să te protejezi online</h2>
+            </div>
+            <div class="info-box-content">
+                <p>Prevenirea furtului de identitate necesită practici de securitate simple, dar eficiente:</p>
+                <ul>
+                    <li>Folosește parole puternice și unice pentru fiecare cont.</li>
+                    <li>Activează autentificarea cu doi factori (2FA) pe platforme.</li>
+                    <li>Evită partajarea datelor personale pe rețele sociale.</li>
+                    <li>Verifică setările de confidențialitate pe Facebook, Instagram etc.</li>
+                    <li>Folosește un VPN pe rețele Wi-Fi publice.</li>
+                    <li>Monitorizează conturile bancare și activează alerte pentru tranzacții.</li>
+                </ul>
+                <p><a href="{{ url_for('digital_hygiene') }}">Evaluează-ți securitatea digitală</a>.
+                </p>
+            </div>
+        </div>
+        <div class="info-box">
+            <div class="info-box-header">
+                <h2>Ce să faci dacă ți-a fost furată identitatea</h2>
+            </div>
+            <div class="info-box-content">
+                <p>Dacă suspectezi că ești victimă, acționează rapid:</p>
+                <ul>
+                    <li><strong>Documentează:</strong> Salvează dovezi (capturi de ecran, e-mailuri).</li>
+                    <li><strong>Raportează:</strong> Contactează platforma unde datele au fost expuse.</li>
+                    <li><strong>Securizează conturile:</strong> Schimbă parolele și activează 2FA.</li>
+                    <li><strong>Informează autoritățile:</strong> Depune o plângere la poliție și contactează <a
+                            href="https://www.dataprotection.ro/" target="_blank">ANSPDCP</a>.</li>
+                    <li><strong>Contactează banca:</strong> Blochează conturile afectate.</li>
+                    <li><strong>Consultă un avocat:</strong> Pentru cazuri complexe, caută suport legal.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="info-box">
+            <div class="info-box-header">
+                <h2>Drepturile tale conform GDPR</h2>
+            </div>
+            <div class="info-box-content">
+                <p>GDPR îți oferă drepturi pentru a-ți proteja datele personale:</p>
+                <ul>
+                    <li><strong>Ștergerea datelor:</strong> Poți cere eliminarea datelor (Articolul 17).</li>
+                    <li><strong>Accesul:</strong> Poți verifica ce date sunt stocate (Articolul 15).</li>
+                    <li><strong>Corectarea:</strong> Poți solicita corectarea datelor incorecte (Articolul 16).</li>
+                </ul>
+                <p>Trimite cereri folosind generatorul de mai jos sau contactează <a
+                        href="https://www.dataprotection.ro/" target="_blank">ANSPDCP</a> dacă nu primești răspuns în 30
+                    de zile.</p>
+            </div>
+        </div>
+        <div class="info-box">
+            <div class="info-box-header">
+                <h2>Semne de avertizare ale furtului de identitate</h2>
+            </div>
+            <div class="info-box-content">
+                <p>Fii atent la aceste semne care pot indica un furt de identitate:</p>
+                <ul>
+                    <li>Tranzacții bancare neautorizate sau necunoscute.</li>
+                    <li>Notificări despre conturi noi deschise în numele tău.</li>
+                    <li>Mesaje/apeluri suspecte care cer confirmarea datelor.</li>
+                    <li>Activitate neobișnuită pe rețelele sociale (ex. postări false).</li>
+                    <li>Scăderi neașteptate ale scorului de credit.</li>
+                </ul>
+                <p>Verifică expunerea datelor tale cu <a href="{{ url_for('exposure_monitor') }}">Monitorul de
+                        Expunere</a>.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Removal Request Generator -->
+    <section class="form-section">
+        <h2>Generator Cereri de Eliminare</h2>
+        <form method="post" action="{{ url_for('antidox_toolkit') }}">
+            <div>
+                <label for="language">Limba:</label>
+                <select id="language" name="language" required>
+                    <option value="" selected disabled>Selectați limba</option>
+                    <option value="en">Engleză</option>
+                    <option value="ro">Română</option>
+                </select>
+            </div>
+            <div class="checkbox-group">
+                <label>Tipurile de Date:</label>
+                {% for data_type in ['full_name', 'home_address', 'phone_number', 'email_address',
+                'social_media_profiles', 'photos', 'government_id', 'financial_information'] %}
+                <label>
+                    <input type="checkbox" name="data_types" value="{{ data_type }}">
+                    {{ 'Nume Complet' if data_type == 'full_name' else 'Adresă' if data_type == 'home_address' else
+                    'Telefon' if data_type == 'phone_number' else 'Email' if data_type == 'email_address' else 'Profil
+                    Social Media' if data_type == 'social_media_profiles' else 'Fotografii' if data_type == 'photos'
+                    else 'Acte Identitate' if data_type == 'government_id' else 'Informații Financiare' }}
+                </label>
+                {% endfor %}
+            </div>
+            <div>
+                <label for="reason">Motivul Ștergerii:</label>
+                <select id="reason" name="reason" required disabled>
+                    <option value="" selected disabled>Selectați motivul</option>
+                </select>
+            </div>
+            <button type="submit">Generează Cerere</button>
+        </form>
+    </section>
+
+    <!-- Request Template Display -->
+    {% if request_template and request_template.status == 'success' %}
+    <section class="request-template">
+        <h4>Subiect Email:</h4>
+        <p>{{ request_template.subject }}</p>
+
+        <h4>Conținut Cerere:</h4>
+        <pre>{{ request_template.body }}</pre>
+
+        <h4>Informații Critice:</h4>
+        <ul>
+            {% for line in request_template.critical_info.split('\n') %}
+            {% if line.strip().startswith('•') %}
+            <li>{{ line.strip().lstrip('•').strip() }}</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </section>
+    {% elif request_template and request_template.status == 'error' %}
+    <div class="alert-danger">
+        {{ request_template.message }}
+    </div>
+    {% endif %}
+
+    <!-- Emergency Plan -->
+    <section class="section">
+        <h2>Plan de Urgență pentru Doxxing</h2>
+        <ul>
+            <li><strong>Documentați:</strong> Faceți capturi de ecran ale conținutului</li>
+            <li><strong>Raportați:</strong> Contactați platformele pentru eliminare</li>
+            <li><strong>Securizați:</strong> Schimbați parolele și activați 2FA</li>
+            <li><strong>Alertați:</strong> Informați instituțiile financiare dacă e cazul</li>
+            <li><strong>Autorități:</strong> Contactați poliția pentru cazuri grave</li>
+        </ul>
+    </section>
+</div>
+
+<!-- JavaScript for dynamic reason dropdown and expandable boxes -->
+<script>
+    const reasons = {
+        'en': {
+            'no_longer_necessary': 'The data is no longer necessary for the purpose it was collected or processed',
+            'withdraw_consent': 'I withdraw my consent',
+            'object_processing': 'I object to the processing under Article 21(1) GDPR',
+            'unlawful_processing': 'The data was processed unlawfully',
+            'legal_obligation': 'Compliance with a legal obligation',
+            'other': 'Other reasons under GDPR'
+        },
+        'ro': {
+            'no_longer_necessary': 'Datele nu mai sunt necesare pentru scopul pentru care au fost colectate sau prelucrate',
+            'withdraw_consent': 'Îmi retrag consimțământul',
+            'object_processing': 'Mă opun prelucrării în temeiul Articolului 21 alin. (1) GDPR',
+            'unlawful_processing': 'Datele au fost prelucrate ilegal',
+            'legal_obligation': 'Respectarea unei obligații legale',
+            'other': 'Alte motive conform GDPR'
+        }
+    };
+
+    document.getElementById('language').addEventListener('change', function () {
+        const language = this.value;
+        const reasonSelect = document.getElementById('reason');
+
+        // Enable reason dropdown only if a language is selected
+        reasonSelect.disabled = !language;
+
+        // Clear existing options
+        reasonSelect.innerHTML = '<option value="" selected disabled>Selectați motivul</option>';
+
+        // Populate reason options based on selected language
+        if (language && reasons[language]) {
+            Object.entries(reasons[language]).forEach(([key, value]) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = value;
+                reasonSelect.appendChild(option);
+            });
+        }
+    });
+
+    // JavaScript for expandable boxes
+    document.querySelectorAll('.info-box-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const content = header.nextElementSibling;
+            const isActive = content.classList.contains('active');
+
+            // Close all other boxes
+            document.querySelectorAll('.info-box-content.active').forEach(c => {
+                c.classList.remove('active');
+                c.previousElementSibling.classList.remove('active');
+            });
+
+            // Toggle current box
+            if (!isActive) {
+                content.classList.add('active');
+                header.classList.add('active');
+            }
+        });
+    });
+</script>
 {% endblock %}

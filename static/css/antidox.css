@@ -126,7 +126,8 @@
     margin-bottom: 10px;
 }
 
-.request-template p, .request-template pre {
+.request-template p,
+.request-template pre {
     font-size: 0.95rem;
     margin-bottom: 10px;
 }
@@ -138,6 +139,81 @@
     border-radius: 4px;
 }
 
+/* Checkbox Group */
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Expandable Info Boxes */
+.info-box {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.info-box-header {
+    padding: 15px 20px;
+    cursor: pointer;
+    background: #f9f9f9;
+    transition: background 0.2s;
+}
+
+.info-box-header h2 {
+    font-size: 1.4rem;
+    color: #2c3e50;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.info-box-header h2::after {
+    content: '▼';
+    font-size: 0.9rem;
+    transition: transform 0.2s;
+}
+
+.info-box-header.active h2::after {
+    transform: rotate(180deg);
+}
+
+.info-box-content {
+    display: none;
+    padding: 20px;
+    font-size: 0.95rem;
+    color: #7f8c8d;
+}
+
+.info-box-content.active {
+    display: block;
+}
+
+.info-box-content ul {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 10px 0;
+}
+
+.info-box-content a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.info-box-content a:hover {
+    text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .header h1 {
@@ -146,5 +222,13 @@
 
     .form-section form {
         max-width: 100%;
+    }
+
+    .info-box-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .info-box-content {
+        font-size: 0.9rem;
     }
 }
