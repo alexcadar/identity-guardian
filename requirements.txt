@@ -1,4 +1,4 @@
-flask
+flask==3.0.2
 requests==2.32.3
 python-dotenv==1.0.1
 Jinja2==3.1.4
@@ -8,7 +8,5 @@ google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.1
 google-generativeai==0.8.3
 cachetools==5.5.0
-sqlite3==2.6.0  # Inclus în Python, dar listat pentru claritate
 python-dateutil==2.9.0
 typing-extensions==4.12.2
-base64==1.0.0  # Inclus în Python, dar listat pentru claritate
