@@ -91,10 +91,21 @@ def fetch_mentions(report_id):
         if not report_data:
             app.logger.error(f"No report data found for report_id {report_id}")
             return []
-        if not isinstance(report_data.get('full_report'), dict):
-            app.logger.error(f"Invalid full_report for report_id {report_id}: {report_data.get('full_report')}")
+        full_report = report_data.get('full_report')
+        if not isinstance(full_report, dict):
+            app.logger.error(f"Invalid full_report for report_id {report_id}: {full_report}")
             return []
-        found_on = report_data.get('full_report', {}).get('username_report', {}).get('found_on', [])
+        username_report = full_report.get('username_report') or {
+            'found_on': [],
+            'pastes': [],
+            'input_type': 'none',
+            'status': 'success',
+            'risk_level': 'low'
+        }
+        if not isinstance(username_report, dict):
+            app.logger.warning(f"username_report is not a dict for report_id {report_id}: {username_report}")
+            return []
+        found_on = username_report.get('found_on', [])
         return [
             {
                 'platform': m.get('platform', 'Unknown'),
@@ -117,12 +128,23 @@ def fetch_recommendations(report_id, type_):
         if not report_data:
             app.logger.error(f"No report data found for report_id {report_id}")
             return []
-        if not isinstance(report_data.get('full_report'), dict):
-            app.logger.error(f"Invalid full_report for report_id {report_id}: {report_data.get('full_report')}")
+        full_report = report_data.get('full_report')
+        if not isinstance(full_report, dict):
+            app.logger.error(f"Invalid full_report for report_id {report_id}: {full_report}")
             return []
         if type_ == 'email':
-            return report_data.get('full_report', {}).get('email_report', {}).get('recommendations', [])
-        return report_data.get('full_report', {}).get('username_report', {}).get('recommendations', [])
+            return full_report.get('email_report', {}).get('recommendations', [])
+        username_report = full_report.get('username_report') or {
+            'found_on': [],
+            'pastes': [],
+            'input_type': 'none',
+            'status': 'success',
+            'risk_level': 'low'
+        }
+        if not isinstance(username_report, dict):
+            app.logger.warning(f"username_report is not a dict for report_id {report_id}: {username_report}")
+            return []
+        return username_report.get('recommendations', [])
     except Exception as e:
         app.logger.error(f"Error fetching recommendations for report {report_id}, type {type_}: {str(e)}")
         return []
@@ -176,10 +198,18 @@ def exposure_monitor():
 
         try:
             email_results = check_email_exposure(email) if email else None
-            username_results = search_username_exposure(query) if query else None
+            # Set default username_results if query is empty
+            username_results = search_username_exposure(query) if query else {
+                'status': 'success',
+                'found_on': [],
+                'pastes': [],
+                'risk_level': 'low',
+                'input_type': 'none',
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
 
-            app.logger.debug(f"Email results: {email_results}")
-            app.logger.debug(f"Username results: {username_results}")
+            app.logger.debug(f"Email results: {json.dumps(email_results, default=str)}")
+            app.logger.debug(f"Username results: {json.dumps(username_results, default=str)}")
 
             current_results = {
                 'query': {'email': email, 'query': query},
@@ -208,10 +238,10 @@ def exposure_monitor():
                 'type': 'exposure',
                 'email': email,
                 'query': query,
-                'input_type': username_results.get('input_type', 'unknown') if username_results else 'unknown',
+                'input_type': username_results.get('input_type', 'none'),
                 'risk': current_results['combined_risk'],
                 'breach_count': email_results.get('total_breaches', 0) if email_results else 0,
-                'mention_count': len(username_results.get('found_on', [])) if username_results else 0,
+                'mention_count': len(username_results.get('found_on', [])),
                 'paste_count': paste_count
             }
             app.logger.debug(f"Saving report with summary_data: {summary_data}")
@@ -336,29 +366,46 @@ def report_detail(report_id):
 
     report_data = get_report_detail(report_id)
     app.logger.debug(f"Report data for report_id {report_id}: {report_data}")
-    if not report_data:
-        app.logger.error(f"No report data found for report_id {report_id}")
-        flash('Raportul specificat nu a fost găsit.', 'danger')
+    
+    if not report_data or not isinstance(report_data.get('full_report'), dict):
+        app.logger.error(f"Invalid or missing report data for report_id {report_id}: {report_data}")
+        flash('Raportul specificat nu a fost găsit sau este corupt.', 'danger')
         return redirect(url_for('dashboard'))
 
     module_type = report_data.get('module_type')
     full_report = report_data.get('full_report')
 
-    if not module_type or not isinstance(full_report, dict):
-        app.logger.error(f"Invalid report data for report_id {register_id}: module_type={module_type}, full_report={full_report}")
-        flash(f'Datele raportului {report_id} sunt incomplete sau corupte.', 'error')
+    if not module_type:
+        app.logger.error(f"Missing module_type for report_id {report_id}")
+        flash('Tip de raport necunoscut.', 'danger')
         return redirect(url_for('dashboard'))
 
     if module_type == 'exposure':
-        if 'error' in full_report or not (full_report.get('query') or full_report.get('email_report') or full_report.get('username_report')):
-            app.logger.error(f"Invalid exposure report {report_id}: {full_report.get('error', 'Missing required fields')}")
-            flash(f'Raportul {report_id} este invalid.', 'error')
-            return redirect(url_for('dashboard'))
-        
+        email_report = full_report.get('email_report', {})
+        # Ensure username_report is a dict, even if stored as None or invalid
+        username_report = full_report.get('username_report') or {
+            'found_on': [],
+            'pastes': [],
+            'input_type': 'none',
+            'status': 'success',
+            'risk_level': 'low',
+            'timestamp': report_data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        }
+        if not isinstance(username_report, dict):
+            app.logger.warning(f"username_report is not a dict for report_id {report_id}: {username_report}")
+            username_report = {
+                'found_on': [],
+                'pastes': [],
+                'input_type': 'none',
+                'status': 'success',
+                'risk_level': 'low',
+                'timestamp': report_data.get('timestamp', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            }
+
         paste_count = full_report.get('paste_count', 0)
         if paste_count == 0:
-            email_pastes = len(full_report.get('email_report', {}).get('pastes', []))
-            username_pastes = len(full_report.get('username_report', {}).get('pastes', []))
+            email_pastes = len(email_report.get('pastes', [])) if email_report else 0
+            username_pastes = len(username_report.get('pastes', []))
             paste_count = email_pastes + username_pastes
             app.logger.debug(f"Recalculated paste_count for report_id {report_id}: {paste_count} (email: {email_pastes}, username: {username_pastes})")
 
@@ -369,19 +416,19 @@ def report_detail(report_id):
             },
             'combined_risk': full_report.get('combined_risk', 'unknown'),
             'email_report': {
-                'total_breaches': full_report.get('email_report', {}).get('total_breaches', 0),
-                'breaches': full_report.get('email_report', {}).get('breaches', []),
-                'pastes': full_report.get('email_report', {}).get('pastes', []),
-                'intelx_results': full_report.get('email_report', {}).get('intelx_results', []),
-                'dehashed_results': full_report.get('email_report', {}).get('dehashed_results', []),
-                'leakcheck_results': full_report.get('email_report', {}).get('leakcheck_results', []),
+                'total_breaches': email_report.get('total_breaches', 0),
+                'breaches': email_report.get('breaches', []),
+                'pastes': email_report.get('pastes', []),
+                'intelx_results': email_report.get('intelx_results', []),
+                'dehashed_results': email_report.get('dehashed_results', []),
+                'leakcheck_results': email_report.get('leakcheck_results', []),
                 'recommendations': fetch_recommendations(report_id, 'email') or []
             },
             'username_report': {
                 'mentions': fetch_mentions(report_id) or [],
-                'pastes': full_report.get('username_report', {}).get('pastes', []),
+                'pastes': username_report.get('pastes', []),
                 'recommendations': fetch_recommendations(report_id, 'username') or [],
-                'input_type': full_report.get('username_report', {}).get('input_type', 'unknown')
+                'input_type': username_report.get('input_type', 'none')
             },
             'timestamp': report_data.get('timestamp', ''),
             'report_id': report_id,
@@ -392,7 +439,7 @@ def report_detail(report_id):
                               title=f"Detalii Raport Expunere - Identity Guardian",
                               report=current_results)
     elif module_type == 'hygiene':
-        summary_data = full_report.get('summary_data', full_report if isinstance(full_report, dict) else {})
+        summary_data = full_report.get('summary_data', full_report)
         if not summary_data:
             app.logger.error(f"Hygiene report {report_id} lacks valid summary_data.")
             flash("Raportul de igienă digitală este corupt sau incomplet.", "danger")
@@ -432,16 +479,6 @@ def dashboard():
                           exposure_history=exposure_history,
                           hygiene_history=hygiene_history,
                           exposure_page=exposure_page)
-
-# Error Handlers
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('error.html', error_code=404, error_message="Pagina nu a fost găsită"), 404
-
-@app.errorhandler(500)
-def internal_server_error(e):
-    app.logger.error(f"Internal Server Error: {e}", exc_info=True)
-    return render_template('error.html', error_code=500, error_message="Eroare Internă Server"), 500
 
 if __name__ == '__main__':
     if not app.secret_key or app.secret_key == "default_secret_key_please_change":

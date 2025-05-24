@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -10,11 +10,14 @@
 </head>
 
 <body>
-    <!-- Navigation -->
     <nav class="nav">
         <div class="container">
-            <div class="nav-logo">Identity Guardian</div>
-            <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+            <a href="{{ url_for('index') }}" class="nav-logo">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Identity Guardian Logo"
+                    class="nav-logo-img">
+                Identity Guardian
+            </a>
+            <button class="nav-toggle">☰</button>
             <ul class="nav-menu">
                 <li><a href="{{ url_for('index') }}">Pagina principală</a></li>
                 <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
@@ -28,13 +31,8 @@
     {% block content %}{% endblock %}
 
     <script>
-        // Toggle mobile menu
-        const navToggle = document.querySelector('.nav-toggle');
-        const navMenu = document.querySelector('.nav-menu');
-
-        navToggle.addEventListener('click', () => {
-            navMenu.classList.toggle('active');
-            navToggle.textContent = navMenu.classList.contains('active') ? '✕' : '☰';
+        document.querySelector('.nav-toggle').addEventListener('click', () => {
+            document.querySelector('.nav-menu').classList.toggle('active');
         });
     </script>
 </body>

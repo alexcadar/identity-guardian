@@ -49,7 +49,27 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="no-data">Nu au fost detectate încălcări specifice pentru emailul {{ report['query']['email'] }}.</p>
+        <p class="no-data">Nu au fost detectate încălcări specifice pentru emailul {{ report['query']['email'] }} în
+            HaveIBeenPwned.</p>
+        {% endif %}
+    </section>
+
+    <section class="results-section">
+        <h2>Rezultate LeakCheck</h2>
+        {% if report['email_report']['leakcheck_results'] %}
+        <ul class="breach-list">
+            {% for result in report['email_report']['leakcheck_results'] %}
+            <li class="breach-item">
+                <p><strong>Sursă:</strong> {{ result['name'] if result['name'] else 'N/A' }}</p>
+                <p><strong>Data:</strong> {{ result['date'] if result['date'] else 'N/A' }}</p>
+                <p><strong>Tipuri de date compromise:</strong> {{ result['data_classes'] | join(', ') if
+                    result['data_classes'] else 'Informații indisponibile.' }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">Nu au fost detectate încălcări specifice pentru emailul {{ report['query']['email'] }} în
+            LeakCheck.</p>
         {% endif %}
     </section>
     {% endif %}

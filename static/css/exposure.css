@@ -14,13 +14,116 @@
     margin-top: 5px;
 }
 
-/* Form Section */
+/* Loading Spinner */
+.loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.loading-spinner.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.spinner {
+    width: 80px;
+    height: 80px;
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Flash Messages */
+.flash-messages {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px;
+    z-index: 1000;
+    padding: 10px;
+}
+
+.flash-success {
+    background: #e8f5e9;
+    color: #27ae60;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    animation: fadeDown 0.5s ease forwards, fadeOut 0.5s ease 2.5s forwards;
+}
+
+.flash-warning {
+    background: #fff3e0;
+    color: #f1c40f;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    animation: fadeDown 0.5s ease forwards, fadeOut 0.5s ease 2.5s forwards;
+}
+
+.flash-danger {
+    background: #ffebee;
+    color: #e74c3c;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    animation: fadeDown 0.5s ease forwards, fadeOut 0.5s ease 2.5s forwards;
+}
+
+@keyframes fadeDown {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Form Section with Loading Overlay */
 .form-section {
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 20px;
     margin-bottom: 20px;
+    position: relative;
+    transition: opacity 0.3s ease;
+}
+
+.form-section.loading {
+    opacity: 0.5;
 }
 
 .form-section form {
@@ -73,35 +176,6 @@
 
 .form-section button:hover {
     background: #2980b9;
-}
-
-/* Flash Messages */
-.flash-messages {
-    margin-bottom: 20px;
-}
-
-.flash-success {
-    color: #27ae60;
-    background: #e8f5e9;
-    padding: 10px;
-    border-radius: 4px;
-    margin: 5px 0;
-}
-
-.flash-warning {
-    color: #f1c40f;
-    background: #fff3e0;
-    padding: 10px;
-    border-radius: 4px;
-    margin: 5px 0;
-}
-
-.flash-danger {
-    color: #e74c3c;
-    background: #ffebee;
-    padding: 10px;
-    border-radius: 4px;
-    margin: 5px 0;
 }
 
 /* Results Section */
@@ -204,5 +278,15 @@
 
     .form-section form {
         max-width: 100%;
+    }
+
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border-width: 5px;
+    }
+
+    .flash-messages {
+        max-width: 90%;
     }
 }

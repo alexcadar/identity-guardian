@@ -12,6 +12,17 @@
 
 <!-- Main Content -->
 <div class="container">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages" id="flash-messages">
+        {% for category, message in messages %}
+        <p class="flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
     <div class="alert-warning">
         <p><strong>Atenție:</strong> Acest toolkit vă ajută să generați cereri pentru ștergerea datelor personale.
             Completați șablonul generat cu informațiile dumneavoastră și trimiteți-l operatorului de date.</p>
@@ -126,7 +137,7 @@
     <!-- Removal Request Generator -->
     <section class="form-section">
         <h2>Generator Cereri de Eliminare</h2>
-        <form method="post" action="{{ url_for('antidox_toolkit') }}">
+        <form method="post" action="{{ url_for('antidox_toolkit') }}" id="antidox-form">
             <div>
                 <label for="language">Limba:</label>
                 <select id="language" name="language" required>
@@ -160,7 +171,7 @@
 
     <!-- Request Template Display -->
     {% if request_template and request_template.status == 'success' %}
-    <section class="request-template">
+    <section class="request-template" id="request-template">
         <h4>Subiect Email:</h4>
         <p>{{ request_template.subject }}</p>
 
@@ -195,7 +206,7 @@
     </section>
 </div>
 
-<!-- JavaScript for dynamic reason dropdown and expandable boxes -->
+<!-- JavaScript for dynamic reason dropdown, expandable boxes, flash message removal, and post-submit behavior -->
 <script>
     const reasons = {
         'en': {
@@ -255,6 +266,21 @@
                 header.classList.add('active');
             }
         });
+    });
+
+    // Scroll to request template and remove flash messages after 3 seconds
+    document.addEventListener('DOMContentLoaded', () => {
+        const requestTemplate = document.getElementById('request-template');
+        if (requestTemplate) {
+            requestTemplate.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        const flashMessages = document.getElementById('flash-messages');
+        if (flashMessages) {
+            setTimeout(() => {
+                flashMessages.remove();
+            }, 3000); // Remove after 3 seconds
+        }
     });
 </script>
 {% endblock %}
