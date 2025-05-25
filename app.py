@@ -272,7 +272,7 @@ def digital_hygiene():
     """Handle the digital hygiene assessment page and form submission."""
     last_report_summary = None
     questionnaire = {}
-    current_report = None
+    current_hygiene_report = None
 
     try:
         questionnaire = load_questionnaire()
@@ -296,19 +296,19 @@ def digital_hygiene():
             try:
                 processed_data = process_hygiene_form(form_data)
                 if processed_data:
-                    current_report = generate_hygiene_report(processed_data)
-                    if current_report:
-                        flash('Raportul de igienă digitală a fost generat cu succes!', 'success')
+                    current_hygiene_report = generate_hygiene_report(processed_data)
+                    if current_hygiene_report:
+                        flash('Evaluarea ta a fost finalizată!', 'success')
                         summary_data = {
                             'type': 'hygiene',
-                            'score': current_report.get('overall_score', 0),
-                            'risk': current_report.get('risk_level', 'necunoscut')
+                            'score': current_hygiene_report.get('overall_score', 0),
+                            'risk': current_hygiene_report.get('risk_level', 'necunoscut')
                         }
-                        report_id = save_report('hygiene', summary_data, current_report)
+                        report_id = save_report('hygiene', summary_data, current_hygiene_report)
                         if report_id:
                             app.logger.info(f"Hygiene report saved with global ID {report_id}")
-                            current_report['report_id'] = report_id
-                            last_report_summary = {'report_id': report_id, 'timestamp': current_report['generated_at'], 'summary_data': summary_data}
+                            current_hygiene_report['report_id'] = report_id
+                            last_report_summary = {'report_id': report_id, 'timestamp': current_hygiene_report['generated_at'], 'summary_data': summary_data}
                         else:
                             app.logger.error("Failed to save hygiene report")
                     else:
@@ -319,16 +319,41 @@ def digital_hygiene():
                 app.logger.error(f"Error processing hygiene form or generating report: {e}", exc_info=True)
                 flash('A apărut o eroare internă la procesarea evaluării.', 'danger')
 
-    if request.method == 'GET' or not current_report:
-        return render_template('hygiene.html',
-                              title="Evaluare Igienă Digitală - Identity Guardian",
-                              questionnaire=questionnaire,
-                              last_report=last_report_summary,
-                              current_hygiene_report=current_report)
-    elif current_report and request.method == 'POST':
-        return render_template('hygiene_report_detail.html',
-                              title="Detalii Raport Igienă Digitală - Identity Guardian",
-                              report=current_report)
+    return render_template('hygiene.html',
+                          title="Evaluare Igienă Digitală - Identity Guardian",
+                          questionnaire=questionnaire,
+                          last_report=last_report_summary,
+                          current_hygiene_report=current_hygiene_report)
+
+@app.route('/digital-hygiene-report/<int:report_id>')
+def digital_hygiene_report(report_id):
+    """Render the detailed digital hygiene report for a specific report ID."""
+    if not DATABASE_AVAILABLE:
+        flash("Funcționalitatea bazei de date nu este disponibilă.", "danger")
+        return redirect(url_for('digital_hygiene'))
+
+    report_data = get_report_detail(report_id)
+    if not report_data or not isinstance(report_data.get('full_report'), dict):
+        app.logger.error(f"Invalid or missing report data for report_id {report_id}: {report_data}")
+        flash('Raportul specificat nu a fost găsit sau este corupt.', 'danger')
+        return redirect(url_for('digital_hygiene'))
+
+    full_report = report_data.get('full_report')
+    summary_data = full_report.get('summary_data', full_report)
+    if not summary_data:
+        app.logger.error(f"Hygiene report {report_id} lacks valid summary_data.")
+        flash("Raportul de igienă digitală este corupt sau incomplet.", "danger")
+        return redirect(url_for('digital_hygiene'))
+
+    report = {
+        'timestamp': report_data.get('timestamp', ''),
+        'report_id': report_id,
+        'summary_data': summary_data
+    }
+
+    return render_template('hygiene_report_detail.html',
+                          title="Detalii Raport Igienă Digitală - Identity Guardian",
+                          report=report)
 
 @app.route('/antidox-toolkit', methods=['GET', 'POST'])
 def antidox_toolkit():
@@ -359,7 +384,7 @@ def antidox_toolkit():
 
 @app.route('/report-detail/<int:report_id>')
 def report_detail(report_id):
-    """Show details of a specific report (hygiene or exposure)."""
+    """Show details of a specific exposure report (not hygiene reports)."""
     if not DATABASE_AVAILABLE:
         flash("Funcționalitatea bazei de date nu este disponibilă.", "danger")
         return redirect(url_for('dashboard'))
@@ -438,21 +463,8 @@ def report_detail(report_id):
         return render_template('report_detail.html',
                               title=f"Detalii Raport Expunere - Identity Guardian",
                               report=current_results)
-    elif module_type == 'hygiene':
-        summary_data = full_report.get('summary_data', full_report)
-        if not summary_data:
-            app.logger.error(f"Hygiene report {report_id} lacks valid summary_data.")
-            flash("Raportul de igienă digitală este corupt sau incomplet.", "danger")
-            return redirect(url_for('dashboard'))
-        return render_template('hygiene_report_detail.html',
-                              title=f"Detalii Raport Igienă Digitală - Identity Guardian",
-                              report={
-                                  'timestamp': report_data.get('timestamp', ''),
-                                  'report_id': report_id,
-                                  'summary_data': summary_data
-                              })
     else:
-        flash("Tip de raport necunoscut.", "danger")
+        flash("Tip de raport necunoscut sau raportul aparține altui modul.", "danger")
         return redirect(url_for('dashboard'))
     
 @app.route('/dashboard')

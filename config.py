@@ -51,10 +51,13 @@ ENABLE_EMAIL_MONITORING = True
 ENABLE_USERNAME_MONITORING = True
 ENABLE_PASTEBIN_SEARCH = True
 ENABLE_LLM_REPORTS = True
-LLM_MODEL_NAME = "gemini-2.0-flash"
-LLM_FALLBACK_MODEL = "gemini-1.5-flash-001"
+LLM_MODEL_NAME = "gemini-2.5-flash-preview-04-17"
+LLM_FALLBACK_MODEL = "gemini-1.5-flash-latest"
 LLM_TEMPERATURE = 0.7  # Optional
-LLM_MAX_TOKENS = 2048  # Optional
+LLM_MAX_TOKENS = 8192  # Optional
+
+print("DEBUG: [config.py] Main config.py has been parsed/imported.")
+print(f"DEBUG: [config.py] LLM_MODEL_NAME defined as: {LLM_MODEL_NAME}")
 # Digital Hygiene Report configuration
 HYGIENE_CATEGORIES = [
     'account_security',

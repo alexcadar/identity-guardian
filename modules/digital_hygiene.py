@@ -4,7 +4,7 @@
 """
 Identity Guardian - Digital Hygiene Module
 This module evaluates users' digital hygiene practices and provides personalized recommendations
-for improving their online security posture.
+for improving their online security posture using Gemini LLM.
 """
 
 import json
@@ -269,7 +269,7 @@ def identify_strengths_weaknesses(processed_data: Dict[str, Any]) -> Dict[str, L
 
 def generate_hygiene_report(processed_data: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """
-    Generate a comprehensive hygiene report with recommendations structured for hygiene_report_detail.html.
+    Generate a comprehensive hygiene report with recommendations using Gemini LLM exclusively.
 
     Args:
         processed_data (dict): The processed form data with scores and analysis, or None.
@@ -296,7 +296,7 @@ def generate_hygiene_report(processed_data: Optional[Dict[str, Any]]) -> Optiona
         "risk_level": "necunoscut",
         "risk_level_description": "Nivelul de risc nu a putut fi determinat.",
         "summary": "Rezumatul nu a putut fi generat.",
-        "report_version": "1.2",  # Incremented version
+        "report_version": "1.3",  # Incremented version
         "verification_method": "Identity Guardian Digital Hygiene Assessment"
     }
 
@@ -312,12 +312,16 @@ def generate_hygiene_report(processed_data: Optional[Dict[str, Any]]) -> Optiona
         report["risk_level"] = "ridicat"
         report["risk_level_description"] = "Practicile tale de igienă digitală prezintă vulnerabilități semnificative care necesită atenție imediată."
 
-    # Add basic recommendations
-    add_basic_recommendations(report, processed_data)
-
-    # Attempt AI-powered recommendations
-    if is_llm_available():
-        logger.info("LLM service is available, attempting to generate AI recommendations.")
+    # Generate recommendations using Gemini LLM
+    if not is_llm_available():
+        logger.error("LLM service is not available. Cannot generate personalized recommendations.")
+        report["recommendations"] = [{"category": "general", "recommendation": "LLM-ul Gemini nu este disponibil. Vă rugăm să configurați cheia API pentru a primi recomandări personalizate.", "priority": "high"}]
+        report["action_plan"]["immediate"] = ["Configurați cheia API Gemini pentru a activa recomandările personalizate."]
+        report["summary"] = "Rezumat Igienă Digitală\n\nScorul tău general este **{}/100**, indicând un nivel de risc **{}**. LLM-ul Gemini nu este disponibil pentru a genera recomandări personalizate. Vă rugăm să verificați configurația API.".format(
+            report["overall_score"], report["risk_level"].upper()
+        )
+    else:
+        logger.info("LLM service is available, generating AI recommendations.")
         try:
             ai_recommendations = generate_hygiene_recommendations(
                 report["overall_score"],
@@ -327,38 +331,41 @@ def generate_hygiene_report(processed_data: Optional[Dict[str, Any]]) -> Optiona
             )
             if ai_recommendations and isinstance(ai_recommendations, dict):
                 logger.info("Received recommendations structure from LLM.")
-                existing_rec_texts = {r.get("recommendation", "").lower() for r in report["recommendations"]}
-                for ai_rec in ai_recommendations.get("recommendations", []):
-                    if isinstance(ai_rec, dict) and ai_rec.get("recommendation", "").lower() not in existing_rec_texts:
-                        report["recommendations"].append(ai_rec)
-                        existing_rec_texts.add(ai_rec.get("recommendation", "").lower())
-                ai_action_plan = ai_recommendations.get("action_plan", {})
-                if isinstance(ai_action_plan, dict):
-                    for timeframe in ["immediate", "short_term", "long_term"]:
-                        existing_actions = set(report["action_plan"].get(timeframe, []))
-                        ai_actions = ai_action_plan.get(timeframe, [])
-                        if isinstance(ai_actions, list):
-                            for action in ai_actions:
-                                if isinstance(action, str) and action not in existing_actions:
-                                    report["action_plan"][timeframe].append(action)
-                                    existing_actions.add(action)
+                report["recommendations"] = ai_recommendations.get("recommendations", [])
+                report["action_plan"] = ai_recommendations.get("action_plan", {
+                    "immediate": [],
+                    "short_term": [],
+                    "long_term": []
+                })
             else:
                 logger.warning(f"Invalid or no AI recommendations received: {ai_recommendations}")
+                report["recommendations"] = [{"category": "general", "recommendation": "Nu s-au putut genera recomandări personalizate din cauza unei erori LLM.", "priority": "high"}]
+                report["action_plan"]["immediate"] = ["Verificați logurile pentru erori LLM și reîncercați."]
+                report["summary"] = "Rezumat Igienă Digitală\n\nScorul tău general este **{}/100**, indicând un nivel de risc **{}**. Nu s-au putut genera recomandări personalizate din cauza unei erori LLM.".format(
+                    report["overall_score"], report["risk_level"].upper()
+                )
+                return report
         except Exception as e:
             logger.error(f"Error processing AI recommendations: {str(e)}", exc_info=True)
+            report["recommendations"] = [{"category": "general", "recommendation": f"A apărut o eroare la generarea recomandărilor: {str(e)}", "priority": "high"}]
+            report["action_plan"]["immediate"] = ["Verificați logurile pentru erori LLM și reîncercați."]
+            report["summary"] = "Rezumat Igienă Digitală\n\nScorul tău general este **{}/100**, indicând un nivel de risc **{}**. A apărut o eroare la generarea recomandărilor: {}".format(
+                report["overall_score"], report["risk_level"].upper(), str(e)
+            )
+            return report
+
+    # Special handling for perfect score (100%)
+    if report["overall_score"] == 100 and not report["weaknesses"]:
+        report["summary"] = (
+            "Rezumat Igienă Digitală\n\n"
+            "Felicitări, ai obținut un scor perfect de **100/100**, indicând un nivel de risc **SCĂZUT**! Practicile tale de igienă digitală sunt excelente și nu prezintă slăbiciuni conform răspunsurilor din chestionar. Continuă să menții acest nivel ridicat de securitate și să fii atent la noile amenințări digitale.\n\n"
+            "**Puncte forte:**\n"
+        )
+        for strength in report["strengths"][:3]:
+            clean_strength = strength.split(':', 1)[-1].strip() if ':' in strength else strength
+            report["summary"] += f"- {clean_strength}\n"
     else:
-        logger.info("LLM service not available, relying on basic recommendations.")
-
-    # Add fallback recommendations if needed
-    if not report["recommendations"]:
-        logger.info("No recommendations generated, adding fallback recommendations.")
-        add_fallback_recommendations(report)
-
-    # Finalize action plan
-    finalize_action_plan(report)
-
-    # Generate summary
-    report["summary"] = generate_basic_report_summary(report)
+        report["summary"] = generate_basic_report_summary(report)
 
     # Structure summary_data for template compatibility
     report["summary_data"] = {
@@ -373,119 +380,6 @@ def generate_hygiene_report(processed_data: Optional[Dict[str, Any]]) -> Optiona
 
     logger.info(f"Generated hygiene report successfully. Risk level: {report['risk_level']}, Overall score: {report['overall_score']}")
     return report
-
-# --- Recommendation Helpers ---
-
-def add_basic_recommendations(report: Dict[str, Any], processed_data: Dict[str, Any]):
-    """
-    Adds rule-based recommendations based on category scores and specific answers.
-
-    Args:
-        report (dict): The report dictionary to add recommendations to.
-        processed_data (dict): The processed form data containing scores and raw_responses.
-    """
-    logger.debug("Adding basic recommendations based on rules.")
-    recommendations_added = set()
-
-    def add_rec(category, text, priority):
-        if text.lower() not in recommendations_added:
-            report["recommendations"].append({
-                "category": category,
-                "recommendation": text,
-                "priority": priority
-            })
-            recommendations_added.add(text.lower())
-
-    # Process critical weaknesses
-    for weakness in report.get("weaknesses", []):
-        if "critic" in weakness.lower():
-            if "parol" in weakness.lower():
-                add_rec("account_security", "Vă recomandăm să folosiți un manager de parole pentru a genera și stoca parole unice și complexe.", "high")
-            if "mfa" in weakness.lower() or "2fa" in weakness.lower():
-                add_rec("account_security", "Vă sugerăm să activați autentificarea cu doi factori (2FA) pe conturile critice (email, bancă, social media).", "high")
-            if "actualizări" in weakness.lower():
-                add_rec("device_security", "Vă recomandăm să instalați imediat toate actualizările de securitate pentru sistemul de operare și aplicații.", "high")
-            if "wi-fi public" in weakness.lower():
-                add_rec("browsing_habits", "Luați în considerare utilizarea unui VPN de încredere, cum ar fi NordVPN, pe rețele Wi-Fi publice.", "high")
-            if "descărca" in weakness.lower():
-                add_rec("browsing_habits", "Descărcați aplicații doar din magazine oficiale (Google Play, App Store) pentru a reduce riscurile.", "high")
-
-    # Process specific question responses
-    for category, responses in processed_data.get("raw_responses", {}).items():
-        for response in responses:
-            question_id = response.get("question_id")
-            response_value = response.get("value")
-            if question_id and response_value and response_value <= 2:
-                if question_id == "public_wifi" and response_value <= 2:
-                    add_rec("browsing_habits", "Evitați utilizarea Wi-Fi-ului public pentru activități sensibile fără un VPN securizat.", "high")
-                elif question_id == "social_privacy" and response_value <= 2:
-                    add_rec("social_media", "Vă sugerăm să setați profilurile de social media pe modul privat și să limitați informațiile vizibile public.", "medium")
-                elif question_id == "app_permissions" and response_value <= 2:
-                    add_rec("data_sharing", "Verificați și revocați permisiunile inutile acordate aplicațiilor mobile.", "medium")
-
-    # Category-based recommendations
-    category_scores = report.get("category_scores", {})
-    if category_scores.get("account_security", 100) < 60:
-        add_rec("account_security", "Revizuiți securitatea conturilor și folosiți parole unice.", "high")
-        add_rec("account_security", "Considerați utilizarea unui manager de parole precum Bitwarden.", "high")
-    if category_scores.get("data_sharing", 100) < 70:
-        add_rec("data_sharing", "Limitați informațiile personale partajate online.", "medium")
-    if category_scores.get("device_security", 100) < 60:
-        add_rec("device_security", "Activați blocarea ecranului cu PIN sau amprentă pe toate dispozitivele.", "medium")
-    if category_scores.get("social_media", 100) < 70:
-        add_rec("social_media", "Dezactivați conturile sociale neutilizate pentru a reduce expunerea.", "low")
-    if category_scores.get("browsing_habits", 100) < 70:
-        add_rec("browsing_habits", "Folosiți un browser securizat, cum ar fi Firefox, cu setări stricte anti-tracking.", "medium")
-
-def add_fallback_recommendations(report: Dict[str, Any]):
-    """
-    Adds generic fallback recommendations if no others were added.
-
-    Args:
-        report (dict): The report dictionary to add recommendations to.
-    """
-    logger.info("Executing fallback recommendations function.")
-    if report.get("recommendations"):
-        logger.debug("Recommendations already exist, skipping fallback.")
-        return
-
-    fallback_recs = [
-        {"category": "account_security", "recommendation": "Vă recomandăm să folosiți parole unice și complexe.", "priority": "high"},
-        {"category": "account_security", "recommendation": "Activați autentificarea cu doi factori (2FA) pe conturile importante.", "priority": "high"},
-        {"category": "device_security", "recommendation": "Mențineți sistemul și aplicațiile actualizate.", "priority": "high"},
-        {"category": "data_sharing", "recommendation": "Fiți atent la informațiile personale partajate online.", "priority": "medium"},
-        {"category": "browsing_habits", "recommendation": "Evitați linkurile și atașamentele din surse nesigure.", "priority": "high"},
-    ]
-    report["recommendations"] = fallback_recs
-    logger.info("Added generic fallback recommendations.")
-
-def finalize_action_plan(report: Dict[str, Any]):
-    """
-    Cleans up the action plan: removes duplicates, ensures critical actions are included.
-
-    Args:
-        report (dict): The report dictionary containing the action plan.
-    """
-    action_plan = report.get("action_plan", {})
-    recommendations = report.get("recommendations", [])
-
-    for timeframe in ["immediate", "short_term", "long_term"]:
-        if timeframe in action_plan and isinstance(action_plan[timeframe], list):
-            action_plan[timeframe] = list(dict.fromkeys(action_plan[timeframe]))
-        else:
-            action_plan[timeframe] = []
-
-    # Ensure all high-priority recommendations are in immediate
-    if not action_plan["immediate"]:
-        action_plan["immediate"] = [r["recommendation"] for r in recommendations if r.get("priority") == "high"]
-    if not action_plan["short_term"]:
-        action_plan["short_term"] = [r["recommendation"] for r in recommendations if r.get("priority") == "medium"][:2]
-    if not action_plan["long_term"]:
-        action_plan["long_term"] = [r["recommendation"] for r in recommendations if r.get("priority") == "low"][:2]
-        if not action_plan["long_term"]:
-            action_plan["long_term"].append("Revizuiți periodic setările de securitate și confidențialitate.")
-
-    report["action_plan"] = action_plan
 
 # --- Basic Summary Generator ---
 

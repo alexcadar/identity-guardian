@@ -1,12 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ title }}{% endblock %}
 {% block css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/hygiene.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/hygiene.css') }}">
 {% endblock %}
 {% block content %}
 <div class="container">
     <h1 class="header-title">Evaluare de Igienă Digitală</h1>
-    
+
+    <!-- Loading Spinner with Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             <h5 class="card-title">Despre Evaluarea de Igienă Digitală</h5>
@@ -15,19 +20,38 @@
                 împreună cu recomandări specifice pentru îmbunătățirea securității online și a confidențialității.
             </p>
             <p class="card-text">
-                Chestionarul este împărțit în 5 categorii principale. Vă rugăm să răspundeți la toate întrebările pentru a primi raportul complet.
+                Chestionarul este împărțit în 5 categorii principale. Vă rugăm să răspundeți la toate întrebările pentru
+                a primi raportul complet.
             </p>
         </div>
     </div>
+
+    {% if current_hygiene_report %}
+    <!-- Afișează mesajul de confirmare și preview-ul raportului -->
+    <div class="confirmation-message">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Rezultatele Dvs.</h5>
+                <p class="card-text">
+                    Scorul tău general este <strong>{{ current_hygiene_report.overall_score }}/100</strong>, indicând un
+                    nivel de risc <strong>{{ current_hygiene_report.risk_level|upper }}</strong>.
+                </p>
+                <a href="{{ url_for('digital_hygiene_report', report_id=current_hygiene_report.report_id) }}"
+                    class="btn">Vezi Raportul Complet</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     {% if hygiene_report %}
     <!-- Afișează raportul dacă există -->
     <div class="report-container">
         <h2 class="header-title">Raportul Dvs. de Igienă Digitală</h2>
-        
+
         <div class="card">
             <div class="card-header">
-                <h3>Scor: {{ hygiene_report.overall_score }}/100 - Nivel de risc: {{ hygiene_report.risk_level|upper }}</h3>
+                <h3>Scor: {{ hygiene_report.overall_score }}/100 - Nivel de risc: {{ hygiene_report.risk_level|upper }}
+                </h3>
             </div>
             <div class="card-body">
                 <!-- Rezumat -->
@@ -37,7 +61,7 @@
                         {{ hygiene_report.summary|safe }}
                     </div>
                 </div>
-                
+
                 <!-- Puncte forte și slabe -->
                 <div class="row">
                     <div class="col">
@@ -69,7 +93,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Recomandări -->
                 <div class="section">
                     <h4>Recomandări Personalizate</h4>
@@ -93,11 +117,11 @@
                         {% endfor %}
                     </div>
                 </div>
-                
+
                 <!-- Plan de acțiune -->
                 <div class="section">
                     <h4>Planul Dvs. de Acțiune</h4>
-                    
+
                     <div class="card">
                         <div class="card-header immediate">
                             <h5>Acțiuni Imediate</h5>
@@ -110,7 +134,7 @@
                             </ul>
                         </div>
                     </div>
-                    
+
                     <div class="card">
                         <div class="card-header short-term">
                             <h5>Acțiuni pe Termen Scurt</h5>
@@ -123,7 +147,7 @@
                             </ul>
                         </div>
                     </div>
-                    
+
                     <div class="card">
                         <div class="card-header long-term">
                             <h5>Acțiuni pe Termen Lung</h5>
@@ -137,21 +161,21 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="text-center">
                     <a href="{{ url_for('digital_hygiene') }}" class="btn">Faceți o Nouă Evaluare</a>
                 </div>
             </div>
         </div>
     </div>
-    
+
     {% else %}
     <!-- Formular pentru evaluarea igienei digitale -->
     <form id="hygieneForm" method="POST" action="{{ url_for('digital_hygiene') }}">
         {% for category, questions in questionnaire.items() %}
         <div class="category-section">
             <h3>{{ category|replace('_', ' ')|title }}</h3>
-            
+
             {% for question in questions %}
             <div class="card">
                 <div class="card-body">
@@ -159,8 +183,8 @@
                     <div class="options-container">
                         {% for option in question.options %}
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="{{ question.id }}" 
-                                   id="{{ question.id }}_{{ option.value }}" value="{{ option.value }}" required>
+                            <input class="form-check-input" type="radio" name="{{ question.id }}"
+                                id="{{ question.id }}_{{ option.value }}" value="{{ option.value }}" required>
                             <label class="form-check-label" for="{{ question.id }}_{{ option.value }}">
                                 {{ option.text }}
                             </label>
@@ -172,11 +196,37 @@
             {% endfor %}
         </div>
         {% endfor %}
-        
+
         <div class="text-center">
             <button type="submit" class="btn">Generează Raportul</button>
         </div>
     </form>
     {% endif %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('hygieneForm');
+        const overlay = document.getElementById('loading-overlay');
+
+        if (form && overlay) {
+            form.addEventListener('submit', () => {
+                // Show overlay with spinner and block scrolling
+                overlay.classList.add('active');
+                document.body.classList.add('no-scroll');
+            });
+
+            // Hide overlay and restore scrolling when page loads
+            window.addEventListener('load', () => {
+                overlay.classList.remove('active');
+                document.body.classList.remove('no-scroll');
+            });
+        } else {
+            console.error('Spinner elements not found:', {
+                form: form,
+                overlay: overlay
+            });
+        }
+    });
+</script>
 {% endblock %}

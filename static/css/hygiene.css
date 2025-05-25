@@ -6,6 +6,62 @@
     margin-bottom: 20px;
 }
 
+/* Loading Overlay with Spinner */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.spinner {
+    width: 80px;
+    height: 80px;
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Block scrolling when overlay is active */
+body.no-scroll {
+    overflow: hidden;
+}
+
+/* Confirmation Message */
+.confirmation-message {
+    margin-bottom: 40px;
+}
+
+.confirmation-message .card {
+    background: #e8f5e9;
+    border: 2px solid #27ae60;
+}
+
 /* Card */
 .card {
     background: white;
@@ -175,5 +231,11 @@
 
     .row {
         flex-direction: column;
+    }
+
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border-width: 5px;
     }
 }
