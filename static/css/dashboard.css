@@ -17,12 +17,31 @@
 /* Dashboard Layout */
 .dashboard {
     display: grid;
-    gap: 20px;
+    gap: 30px;
+}
+
+/* Sections */
+.section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 1.4rem;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 10px;
 }
 
 /* Report List */
 .report-list {
     list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .report-item {
@@ -61,26 +80,57 @@
     font-size: 0.85rem;
 }
 
-.report-details .report-risk {
-    color: #e74c3c;
+/* Risk Level Styling */
+.report-risk {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+    font-size: 0.85rem;
 }
 
-.report-details .report-risk.low {
-    color: #27ae60;
+.report-risk.low {
+    background-color: #d4edda;
+    color: #155724;
 }
 
-.report-details .report-risk.medium {
-    color: #f1c40f;
+.report-risk.medium {
+    background-color: #fff3cd;
+    color: #856404;
 }
 
+.report-risk.high,
+.report-risk.ridicat {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.report-risk.necunoscut,
+.report-risk.unknown {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.report-risk.scăzut {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.report-risk.mediu {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+/* Report Actions */
 .report-actions a {
     text-decoration: none;
     color: #3498db;
     font-size: 0.9rem;
-    padding: 8px 12px;
+    padding: 8px 16px;
     border: 1px solid #3498db;
     border-radius: 4px;
     transition: all 0.2s;
+    display: inline-block;
 }
 
 .report-actions a:hover {
@@ -91,8 +141,22 @@
 /* Empty State */
 .empty-state {
     text-align: center;
-    padding: 20px;
+    padding: 40px 20px;
     color: #7f8c8d;
+}
+
+.empty-state p {
+    margin: 10px 0;
+}
+
+.empty-state a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.empty-state a:hover {
+    text-decoration: underline;
 }
 
 /* Pagination */
@@ -100,18 +164,21 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 15px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #ecf0f1;
 }
 
 .pagination-btn {
-    padding: 8px 12px;
+    padding: 8px 16px;
     border: 1px solid #3498db;
     border-radius: 4px;
     text-decoration: none;
     color: #3498db;
     font-size: 0.9rem;
     transition: all 0.2s;
+    background-color: white;
 }
 
 .pagination-btn:hover:not(.disabled) {
@@ -120,14 +187,16 @@
 }
 
 .pagination-btn.disabled {
-    color: #7f8c8d;
-    border-color: #ddd;
+    color: #bdc3c7;
+    border-color: #ecf0f1;
     cursor: not-allowed;
+    background-color: #f8f9fa;
 }
 
 .pagination-info {
     font-size: 0.9rem;
     color: #2c3e50;
+    font-weight: 500;
 }
 
 /* Responsive Design */
@@ -136,10 +205,22 @@
         font-size: 1.5rem;
     }
 
+    .section {
+        padding: 15px;
+    }
+
+    .section h2 {
+        font-size: 1.2rem;
+    }
+
     .report-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
+    }
+
+    .report-actions {
+        width: 100%;
     }
 
     .report-actions a {
@@ -149,6 +230,11 @@
 
     .pagination {
         flex-wrap: wrap;
-        gap: 5px;
+        gap: 10px;
+    }
+
+    .pagination-btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
     }
 }

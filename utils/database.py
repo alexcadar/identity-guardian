@@ -121,6 +121,145 @@ def init_database() -> bool:
         if 'conn' in locals() and conn:
             conn.close()
         return False
+# Adăugați aceste funcții în database.py după funcția init_database():
+
+def optimize_database() -> bool:
+    """
+    Add indexes and optimize database for better performance.
+    This should be called after init_database().
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Create additional indexes for faster queries
+        optimization_queries = [
+            # Index for faster module_type queries
+            "CREATE INDEX IF NOT EXISTS idx_module_type ON Reports(module_type)",
+            
+            # Index for timestamp queries
+            "CREATE INDEX IF NOT EXISTS idx_timestamp_desc ON Reports(timestamp DESC)",
+            
+            # Compound index for the most common query pattern
+            "CREATE INDEX IF NOT EXISTS idx_module_timestamp ON Reports(module_type, timestamp DESC)",
+            
+            # Enable query optimization
+            "PRAGMA optimize",
+            
+            # Set journal mode for better concurrent access
+            "PRAGMA journal_mode=WAL",
+            
+            # Increase cache size (in pages, -2000 = 2MB)
+            "PRAGMA cache_size=-2000",
+            
+            # Enable foreign keys
+            "PRAGMA foreign_keys=ON"
+        ]
+        
+        for query in optimization_queries:
+            cursor.execute(query)
+            logger.debug(f"Executed optimization: {query}")
+        
+        conn.commit()
+        
+        # Analyze the database for query planner
+        cursor.execute("ANALYZE")
+        
+        conn.close()
+        logger.info("Database optimization completed successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Database optimization failed: {e}")
+        if 'conn' in locals() and conn:
+            conn.close()
+        return False
+
+def get_reports_by_type_paginated(module_type: str, page: int = 1, per_page: int = 10) -> tuple[List[Dict[str, Any]], int]:
+    """
+    Retrieve paginated reports of a specific type with total count.
+    
+    Args:
+        module_type (str): The type of reports to retrieve
+        page (int): Page number (1-based)
+        per_page (int): Number of items per page
+        
+    Returns:
+        Tuple[List[Dict], int]: (reports, total_count)
+    """
+    reports = []
+    total_count = 0
+    
+    if not module_type or page < 1 or per_page < 1:
+        return reports, total_count
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get total count
+        cursor.execute(
+            "SELECT COUNT(*) FROM Reports WHERE module_type = ?",
+            (module_type,)
+        )
+        total_count = cursor.fetchone()[0]
+        
+        # Calculate offset
+        offset = (page - 1) * per_page
+        
+        # Get paginated results
+        cursor.execute(
+            """
+            SELECT report_id, timestamp, summary_data_json
+            FROM Reports
+            WHERE module_type = ?
+            ORDER BY timestamp DESC
+            LIMIT ? OFFSET ?
+            """,
+            (module_type, per_page, offset)
+        )
+        
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            report_summary = dict(row)
+            try:
+                report_summary['summary_data'] = json.loads(report_summary['summary_data_json'])
+                del report_summary['summary_data_json']
+                reports.append(report_summary)
+            except json.JSONDecodeError:
+                logger.warning(f"Could not parse summary_data_json for report_id {row['report_id']}")
+                reports.append({
+                    'report_id': row['report_id'], 
+                    'timestamp': row['timestamp'], 
+                    'summary_data': {'error': 'invalid JSON'}
+                })
+        
+        conn.close()
+        logger.debug(f"Retrieved page {page} of {module_type} reports: {len(reports)} items, total: {total_count}")
+        return reports, total_count
+        
+    except sqlite3.Error as e:
+        logger.error(f"Error retrieving paginated {module_type} reports: {e}")
+        if 'conn' in locals() and conn:
+            conn.close()
+        return [], 0
+
+def vacuum_database() -> bool:
+    """
+    Vacuum the database to reclaim space and optimize performance.
+    Should be called periodically (e.g., weekly).
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=30)  # Longer timeout for vacuum
+        conn.execute("VACUUM")
+        conn.close()
+        logger.info("Database vacuum completed successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Database vacuum failed: {e}")
+        return False
+
 
 def save_report(module_type: str, summary_data: Dict[str, Any], full_report: Dict[str, Any]) -> Optional[int]:
     """Saves a generic report to the database."""
@@ -164,7 +303,16 @@ def save_report(module_type: str, summary_data: Dict[str, Any], full_report: Dic
         return None
 
 def get_reports_by_type(module_type: str, limit: int = 10) -> List[Dict[str, Any]]:
-    """Retrieves a list of reports for a specific module type."""
+    """
+    Retrieves a list of reports for a specific module type.
+    
+    Args:
+        module_type (str): The type of reports to retrieve ('exposure', 'hygiene', etc.)
+        limit (int): Maximum number of reports to return. Use a large number (e.g., 9999) for all reports.
+    
+    Returns:
+        List[Dict[str, Any]]: List of reports with summary data
+    """
     reports = []
     if not module_type:
         logger.warning("No module_type provided for get_reports_by_type")
@@ -172,6 +320,7 @@ def get_reports_by_type(module_type: str, limit: int = 10) -> List[Dict[str, Any
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
         cursor.execute(
             """
             SELECT report_id, timestamp, summary_data_json
@@ -183,7 +332,9 @@ def get_reports_by_type(module_type: str, limit: int = 10) -> List[Dict[str, Any
             (module_type, limit)
         )
         rows = cursor.fetchall()
+        
         logger.debug(f"Retrieved {len(rows)} rows for module_type {module_type}")
+        
         for row in rows:
             report_summary = dict(row)
             try:
@@ -192,7 +343,12 @@ def get_reports_by_type(module_type: str, limit: int = 10) -> List[Dict[str, Any
                 reports.append(report_summary)
             except json.JSONDecodeError:
                 logger.warning(f"Could not parse summary_data_json for report_id {row['report_id']}")
-                reports.append({'report_id': row['report_id'], 'timestamp': row['timestamp'], 'summary_data': {'error': 'invalid JSON'}})
+                reports.append({
+                    'report_id': row['report_id'], 
+                    'timestamp': row['timestamp'], 
+                    'summary_data': {'error': 'invalid JSON'}
+                })
+        
         conn.close()
         return reports
     except sqlite3.Error as e:
@@ -267,3 +423,4 @@ if __name__ == "__main__":
         if report_id:
             detail = get_report_detail(report_id)
             print(f"Detail for report ID {report_id}: {detail}")
+

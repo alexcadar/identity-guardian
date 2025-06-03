@@ -469,39 +469,108 @@ def report_detail(report_id):
     
 @app.route('/dashboard')
 def dashboard():
-    """Render a simplified dashboard showing recent activity."""
+    """Render a dashboard showing recent activity with pagination."""
     if not DATABASE_AVAILABLE:
         flash("Funcționalitatea bazei de date nu este disponibilă.", "danger")
         return redirect(url_for('index'))
 
+    # Get pagination parameters
+    exposure_page = request.args.get('exposure_page', 1, type=int)
+    hygiene_page = request.args.get('hygiene_page', 1, type=int)
+    
+    # Ensure page numbers are valid
+    exposure_page = max(1, exposure_page)
+    hygiene_page = max(1, hygiene_page)
+    
+    # Items per page
+    items_per_page = 3
+    
     try:
-        exposure_history = get_reports_by_type('exposure', limit=5)
-        hygiene_history = get_reports_by_type('hygiene', limit=5)
+        # Get ALL reports for proper pagination
+        all_exposure_reports = get_reports_by_type('exposure', limit=100)  # Get more records
+        all_hygiene_reports = get_reports_by_type('hygiene', limit=100)
+        
+        # Calculate pagination for exposure reports
+        exposure_total = len(all_exposure_reports)
+        exposure_total_pages = (exposure_total + items_per_page - 1) // items_per_page
+        exposure_start = (exposure_page - 1) * items_per_page
+        exposure_end = min(exposure_start + items_per_page, exposure_total)
+        
+        # Ensure page is within valid range
+        if exposure_page > exposure_total_pages and exposure_total_pages > 0:
+            exposure_page = exposure_total_pages
+            exposure_start = (exposure_page - 1) * items_per_page
+            exposure_end = min(exposure_start + items_per_page, exposure_total)
+        
+        # Get paginated exposure reports
+        exposure_history = all_exposure_reports[exposure_start:exposure_end]
+        
+        # Calculate pagination for hygiene reports
+        hygiene_total = len(all_hygiene_reports)
+        hygiene_total_pages = (hygiene_total + items_per_page - 1) // items_per_page
+        hygiene_start = (hygiene_page - 1) * items_per_page
+        hygiene_end = min(hygiene_start + items_per_page, hygiene_total)
+        
+        # Ensure page is within valid range
+        if hygiene_page > hygiene_total_pages and hygiene_total_pages > 0:
+            hygiene_page = hygiene_total_pages
+            hygiene_start = (hygiene_page - 1) * items_per_page
+            hygiene_end = min(hygiene_start + items_per_page, hygiene_total)
+        
+        # Get paginated hygiene reports
+        hygiene_history = all_hygiene_reports[hygiene_start:hygiene_end]
+        
+        app.logger.debug(f"Exposure pagination: page {exposure_page}/{exposure_total_pages}, showing items {exposure_start}-{exposure_end} of {exposure_total}")
+        app.logger.debug(f"Hygiene pagination: page {hygiene_page}/{hygiene_total_pages}, showing items {hygiene_start}-{hygiene_end} of {hygiene_total}")
+        
     except Exception as e:
         app.logger.error(f"Error fetching reports for dashboard: {e}", exc_info=True)
         flash("Eroare la încărcarea istoricului.", "danger")
         exposure_history = []
         hygiene_history = []
-
-    exposure_page = request.args.get('exposure_page', default=1, type=int)
-    if exposure_page < 1:
+        exposure_total_pages = 0
+        hygiene_total_pages = 0
         exposure_page = 1
+        hygiene_page = 1
 
     return render_template('dashboard.html',
                           exposure_history=exposure_history,
                           hygiene_history=hygiene_history,
-                          exposure_page=exposure_page)
+                          exposure_page=exposure_page,
+                          exposure_total_pages=exposure_total_pages,
+                          hygiene_page=hygiene_page,
+                          hygiene_total_pages=hygiene_total_pages)
+
 
 if __name__ == '__main__':
+    print("\n=== Starting Identity Guardian Application ===")
+    print(f"Debug mode: {config.DEBUG}")
+    print(f"Host: {config.HOST}")
+    print(f"Port: {config.PORT}")
+    
     if not app.secret_key or app.secret_key == "default_secret_key_please_change":
         print("\n!!! ATENȚIE: Flask SECRET_KEY nu este setată sau este nesigură !!!\n")
 
     if not DATABASE_AVAILABLE:
-        from utils.database import init_database
-        if init_database(): DATABASE_AVAILABLE = True
+        try:
+            from utils.database import init_database
+            print("Attempting to initialize database...")
+            if init_database(): 
+                DATABASE_AVAILABLE = True
+                print("Database initialized successfully!")
+            else:
+                print("Failed to initialize database!")
+        except Exception as e:
+            print(f"Error during database initialization: {e}")
 
     if not DATABASE_AVAILABLE:
         print("\n!!! ATENȚIE: NU S-A PUTUT CONECTA/INIȚIALIZA BAZA DE DATE !!!")
         print("!!! Aplicația va rula FĂRĂ persistența datelor. !!!\n")
 
-    app.run(debug=config.DEBUG, host=config.HOST, port=config.PORT)
+    print("\nStarting Flask server...")
+    try:
+        app.run(debug=config.DEBUG, host=config.HOST, port=config.PORT)
+    except Exception as e:
+        print(f"\nError starting Flask server: {e}")
+        import traceback
+        traceback.print_exc()

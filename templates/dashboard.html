@@ -11,18 +11,12 @@
     </header>
 
     <div class="dashboard">
+        <!-- Exposure Reports Section -->
         <section class="section">
             <h2>Rapoarte de Expunere</h2>
             {% if exposure_history %}
-            {% set items_per_page = 3 %}
-            {% set total_items = exposure_history | length %}
-            {% set total_pages = (total_items / items_per_page) | round(0, 'ceil') | int %}
-            {% set start_index = (exposure_page - 1) * items_per_page %}
-            {% set end_index = start_index + items_per_page %}
-            {% set paginated_reports = exposure_history[start_index:end_index] %}
-
             <ul class="report-list">
-                {% for report in paginated_reports %}
+                {% for report in exposure_history %}
                 <li class="report-item">
                     <div class="report-details">
                         <p class="report-type">Verificare Expunere</p>
@@ -37,7 +31,10 @@
                         <p>Nivel risc: <span class="report-risk {{ report.summary_data.risk }}">{{
                                 report.summary_data.risk | capitalize }}</span></p>
                         <p>Încălcări: {{ report.summary_data.breach_count }}</p>
-                        <p>Mențiuni: {{ report.summary_data.mention_count }}</p>
+                        <p>Mențiuni găsite: {{ report.summary_data.mention_count }}</p>
+                        {% if report.summary_data.paste_count > 0 %}
+                        <p>Paste-uri: {{ report.summary_data.paste_count }}</p>
+                        {% endif %}
                     </div>
                     <div class="report-actions">
                         <a href="{{ url_for('report_detail', report_id=report.report_id) }}">Vezi Detalii</a>
@@ -46,18 +43,22 @@
                 {% endfor %}
             </ul>
 
-            {% if total_pages > 1 %}
+            {% if exposure_total_pages > 1 %}
             <div class="pagination">
                 {% if exposure_page > 1 %}
-                <a href="{{ url_for('dashboard', exposure_page=exposure_page-1) }}" class="pagination-btn">Înapoi</a>
+                <a href="{{ url_for('dashboard', exposure_page=exposure_page-1, hygiene_page=hygiene_page) }}"
+                    class="pagination-btn">← Înapoi</a>
                 {% else %}
-                <span class="pagination-btn disabled">Înapoi</span>
+                <span class="pagination-btn disabled">← Înapoi</span>
                 {% endif %}
-                <span class="pagination-info">Pagina {{ exposure_page }} din {{ total_pages }}</span>
-                {% if exposure_page < total_pages %} <a href="{{ url_for('dashboard', exposure_page=exposure_page+1) }}"
-                    class="pagination-btn">Înainte</a>
+
+                <span class="pagination-info">Pagina {{ exposure_page }} din {{ exposure_total_pages }}</span>
+
+                {% if exposure_page < exposure_total_pages %} <a
+                    href="{{ url_for('dashboard', exposure_page=exposure_page+1, hygiene_page=hygiene_page) }}"
+                    class="pagination-btn">Înainte →</a>
                     {% else %}
-                    <span class="pagination-btn disabled">Înainte</span>
+                    <span class="pagination-btn disabled">Înainte →</span>
                     {% endif %}
             </div>
             {% endif %}
@@ -69,6 +70,7 @@
             {% endif %}
         </section>
 
+        <!-- Hygiene Reports Section -->
         <section class="section">
             <h2>Rapoarte de Igienă Digitală</h2>
             {% if hygiene_history %}
@@ -78,7 +80,7 @@
                     <div class="report-details">
                         <p class="report-type">Evaluare Igienă Digitală</p>
                         <p class="report-timestamp">{{ report.timestamp }}</p>
-                        <p>Scor: {{ report.summary_data.score }}/100</p>
+                        <p>Scor: <strong>{{ report.summary_data.score }}/100</strong></p>
                         <p>Nivel risc: <span class="report-risk {{ report.summary_data.risk }}">{{
                                 report.summary_data.risk | capitalize }}</span></p>
                     </div>
@@ -88,6 +90,26 @@
                 </li>
                 {% endfor %}
             </ul>
+
+            {% if hygiene_total_pages > 1 %}
+            <div class="pagination">
+                {% if hygiene_page > 1 %}
+                <a href="{{ url_for('dashboard', exposure_page=exposure_page, hygiene_page=hygiene_page-1) }}"
+                    class="pagination-btn">← Înapoi</a>
+                {% else %}
+                <span class="pagination-btn disabled">← Înapoi</span>
+                {% endif %}
+
+                <span class="pagination-info">Pagina {{ hygiene_page }} din {{ hygiene_total_pages }}</span>
+
+                {% if hygiene_page < hygiene_total_pages %} <a
+                    href="{{ url_for('dashboard', exposure_page=exposure_page, hygiene_page=hygiene_page+1) }}"
+                    class="pagination-btn">Înainte →</a>
+                    {% else %}
+                    <span class="pagination-btn disabled">Înainte →</span>
+                    {% endif %}
+            </div>
+            {% endif %}
             {% else %}
             <div class="empty-state">
                 <p>Nu există rapoarte de igienă digitală recente.</p>
@@ -97,12 +119,4 @@
         </section>
     </div>
 </div>
-
-<script>
-    document.querySelectorAll('.report-actions a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            console.log(`Navigating to report details for ID: ${e.target.href}`);
-        });
-    });
-</script>
 {% endblock %}
